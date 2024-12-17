@@ -1,4 +1,10 @@
 //
+//  CameraView.swift
+//  qrcode2
+//
+//  Created by Emil V Rainero on 11/20/24.
+//
+
 
 import SwiftUI
 import AVFoundation
