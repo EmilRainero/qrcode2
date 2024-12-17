@@ -1,1 +1,6 @@
-/qrcode2/opencv2.framework/Versions/A/opencv2
+.DS_Store
+qrcode2.xcodeproj/
+qrcode2/.DS_Store
+qrcode2/Assets.xcassets/
+qrcode2/Preview Content/
+qrcode2/opencv2.framework/
