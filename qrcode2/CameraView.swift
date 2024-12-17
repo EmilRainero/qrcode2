@@ -595,7 +595,6 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 }
             }
         }
-//        print("\(frameCount):  Current state: \(appStateMachine.currentState)")
         
         if appStateMachine.currentState == .calibrating && frameCount == calibrationTime {
 //            for key in qrCodeMap.keys.sorted() {
