@@ -31,13 +31,12 @@ struct CameraView: View {
     var body: some View {
         ZStack {
             if let image = cameraManager.processedImage {
-                ZStack {
+                ZStack(alignment: .top) { // Align child views to the top
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
                         .background(GeometryReader { geometry in
                             Color.clear.onAppear {
-                                // Store the image's size to scale the QR code corners correctly
                                 let imageSize = image.size
                                 let displaySize = calculateDisplaySize(for: imageSize, in: geometry.size)
                                 let scaleFactor = displaySize.width / imageSize.width
@@ -45,51 +44,35 @@ struct CameraView: View {
                                 cameraManager.imageSize = geometry.size
                             }
                         })
-                    VStack {
+                    
+                    VStack(alignment: .center) {
                         if let currentStateMessage = currentStateMessage() {
                             Text(currentStateMessage)
-                                .font(.largeTitle)
+                                .font(.system(size: 24))
                                 .fontWeight(.bold)
-                                .padding()
+//                                .padding()
                         }
-                        
+
                         if let currentStateMessageDetails = currentStateMessageDetails() {
                             Text(currentStateMessageDetails)
                                 .font(.system(size: 24))
-                                .padding()
+//                                .padding()
                         }
                     }
                     .background(
                         Rectangle()
                             .fill(Color.white)
-                            .opacity(0.6) // Semi-transparent white
-                            .cornerRadius(10) // Optional: Rounded corners
+                            .opacity(0.3)
+                            .cornerRadius(10)
                     )
-                    
+                    .frame(maxWidth: .infinity)
+                    .padding() // Add some padding to avoid overlapping the top edge
                 }
                 
             } else {
                 Color.white
             }
             
-//            if let laserSpots = cameraManager.laserSpots {
-//                ForEach(laserSpots.indices, id: \.self) { index in
-//                    let code = laserSpots[index]
-//                    QRCodeOverlay(corners: [
-//                        scalePointDebug(code.topLeft),
-//                        scalePointDebug(code.topRight),
-//                        scalePointDebug(code.bottomRight),
-//                        scalePointDebug(code.bottomLeft)
-//                    ])
-//                    QRCodeOverlay(corners: [
-//                        scalePointDebug(CGPoint(x:0, y:0)),
-//                        scalePointDebug(CGPoint(x:100, y:0)),
-//                        scalePointDebug(CGPoint(x:100, y:cameraManager.imageSize.height)),
-//                        scalePointDebug(CGPoint(x:0, y:cameraManager.imageSize.height))
-//                    ])
-//                    .stroke(Color.red, lineWidth: 2)
-//                }
-//            }
         }
         .navigationTitle("Session")
         .navigationBarTitleDisplayMode(.inline)
@@ -148,36 +131,6 @@ struct CameraView: View {
         return result
     }
     
-    func scalePoint2(_ point: CGPoint) -> CGPoint {
-        // Scale the point based on the image size relative to the view
-        let offsetY = 32.0
-//        print(cameraManager.originalImageSize, cameraManager.imageSize)
-        
-//        let result = CGPoint(
-//            x: point.x / cameraManager.originalImageSize.width * cameraManager.imageSize.width,
-//            y: (1 - point.y / cameraManager.originalImageSize.height) * cameraManager.imageSize.height + offsetY
-//        )
-        
-        let result = CGPoint(
-            x: point.x * cameraManager.scaleFactor,
-            y: (cameraManager.processedImage!.size.height - point.y) * cameraManager.scaleFactor + offsetY
-        )
-
-        return result
-    }
-    
-    func scalePointDebug(_ point: CGPoint) -> CGPoint {
-        // Scale the point based on the image size relative to the view
-        let offsetY = -50.0
-        print(cameraManager.originalImageSize, cameraManager.imageSize)
-        let result = CGPoint(
-            x: point.x / cameraManager.originalImageSize.width * cameraManager.imageSize.width,
-            y: (1 - point.y / cameraManager.originalImageSize.height) * cameraManager.imageSize.height + offsetY
-        )
-//        print("from \(point.x), \(point.y)  to  \(result.x), \(result.y)")
-        return result
-    }
-    
     func calculateDisplaySize(for imageSize: CGSize, in containerSize: CGSize) -> CGSize {
         let aspectWidth = containerSize.width / imageSize.width
         let aspectHeight = containerSize.height / imageSize.height
@@ -188,7 +141,6 @@ struct CameraView: View {
 
 class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     @Published var processedImage: UIImage?
-    @Published var laserSpots: [DetectedQRCode]?
     @Published var originalImageSize: CGSize = .zero
     @Published var imageSize: CGSize = .zero
     @Published var scaleFactor: CGFloat = 0.0
@@ -199,13 +151,12 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var sessionTime: Int32 = 60 * 30
 
     private var detectedQRCodes: [DetectedQRCode]? = []
+    private var laserSpots: [DetectedQRCode]?
 
     private var captureSession: AVCaptureSession?
     private let context = CIContext()
-    
     public var frameCount: Int32 = 0
     private var qrCodeMap: [Int32: [DetectedQRCode]] = [:]
-    
     public var rectifiedImage: UIImage? = .none
     private var corners: [DetectedQRCode] = []
 
@@ -320,18 +271,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         let newImage = cropImage(image, toRect: cropRect)
         let uiImage = newImage!
         
-        DispatchQueue.main.async {
-//            self.originalImageSize = uiImage.size
-//            self.imageSize = CGSize(width: 450, height: 801)
-//            self.processedImage = uiImage
-        }
-        
-        
         let src = Mat(uiImage: uiImage)
-//        let cropRect = Rect(x: 0, y: 200, width: Int32(uiImage.size.width), height: 1000)
-//        let croppedMat = cropMat(src, toRect: cropRect)
-//        print(src)
-//        print(croppedMat)
         
         // Convert to Grayscale
         let grayMat = Mat()
@@ -341,13 +281,10 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         let thresholdMat = Mat()
         Imgproc.threshold(src: grayMat, dst: thresholdMat, thresh: 230, maxval: 255, type: .THRESH_BINARY)
 
-//        writeMaskToFile(thresholdMat, filename: "thresholdMat.jpg")
-
         // Perform Dilation: Restores the white regions
         let dilatedMat = Mat()
         let dilateKernel = Mat.ones(rows: 7, cols: 7, type: CvType.CV_8U)  // 3x3 square kernel
         Imgproc.dilate(src: thresholdMat, dst: dilatedMat, kernel: dilateKernel)
-//        writeMaskToFile(dilatedMat, filename: "dilated.jpg")
     
         // Perform Erosion: Removes small white regions
         let erodedMat = Mat()
@@ -362,13 +299,6 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         Core.bitwise_not(src: resultMat, dst: resultMat)
 
         // Convert the result back to UIImage
-//        DispatchQueue.main.async {
-//            if let resultImage = UIImage(mat: resultMat) {
-//                self.rectifiedImage = resultImage
-//            } else {
-//                print("Failed to convert Mat to UIImage.")
-//            }
-//        }
         
         let contours = NSMutableArray() // Create NSMutableArray to hold contours
         let hierarchy = Mat()
@@ -476,31 +406,28 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 let detect = detectLaser(image: result.image!, frameCount: frameCount)
                 if detect.found {
                     print(frameCount, "LASER")
-                    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(frameCount).jpg")
-                    saveUIImage(result.image!, to: fileURL)
+//                    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(frameCount).jpg")
+//                    saveUIImage(result.image!, to: fileURL)
                     
                     let code = detect.codes[0]
-                    print(code)
+//                    print(code)
                     
+                    if self.laserSpots == nil {
+                        self.laserSpots = [code]
+                    } else {
+                        self.laserSpots!.append(code)
+                    }
+                    let drawImage = self.drawOnImage(image: result.image!, codes: self.laserSpots, color: UIColor.red)
+                    let fileURL2 = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(self.frameCount).jpg")
+                    self.saveUIImage(drawImage!, to: fileURL2)
+//                    print(self.laserSpots!.count)
+//                    self.laserSpots?.forEach { spot in
+//                        print(spot)
+//                    }
                     DispatchQueue.main.async {
-                         
-                        if self.laserSpots == nil {
-                            self.laserSpots = [code]
-                        } else {
-                            self.laserSpots!.append(code)
-                        }
-                        
-                        let drawImage = self.drawOnImage(image: result.image!, codes: self.laserSpots, color: UIColor.red)
-                        let fileURL2 = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(self.frameCount).jpg")
-                        self.saveUIImage(drawImage!, to: fileURL2)
-
-                        print(self.laserSpots!.count)
-                        self.laserSpots?.forEach { spot in
-                            print(spot)
-                        }
                         self.processedImage = drawImage
                         self.originalImageSize = result.image!.size
-                        print("cropped image \(self.originalImageSize)")
+//                        print("cropped image \(self.originalImageSize)")
                     }
                 }
                 
@@ -535,13 +462,13 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         let numberSequentialKeys: Int32 = 10
                         if qrCodeMap.count >= numberSequentialKeys {
                             let lastNkeys = qrCodeMap.keys.sorted().suffix(Int(numberSequentialKeys))
-                            print(lastNkeys)
+//                            print(lastNkeys)
                             if let firstKey = lastNkeys.first, let lastKey = lastNkeys.last, lastKey - firstKey < numberSequentialKeys + 10 {
 //                                 Iterate through the last 10 sorted keys and process the dictionary values
-                                for key in lastNkeys {
-                                    var detectedQRCodes = qrCodeMap[key]
-                                    print("\(key)  \(detectedQRCodes!.count)")
-                                }
+//                                for key in lastNkeys {
+//                                    var detectedQRCodes = qrCodeMap[key]
+//                                    print("\(key)  \(detectedQRCodes!.count)")
+//                                }
                                 appStateMachine.handle(event: .startRunSession)
                                 frameCount = 0
                                 
@@ -583,7 +510,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             }
 //            let startTime = Date()
             var newImage = self.processedImage
-            if appStateMachine.currentState == .calibrating && frameCount % 5 == 0 {
+            if appStateMachine.currentState == .calibrating && frameCount % 2 == 0 {
                 newImage = self.drawOnImage(image: tempImage!, codes: self.detectedQRCodes, color: UIColor.green)
 //                let endTime = Date()
 //                let elapsedTime = endTime.timeIntervalSince(startTime)
@@ -647,16 +574,46 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             cgContext.setLineJoin(.miter)
             cgContext.setLineCap(.square)
 
+
             // Draw the QR code boundaries
             if let codes = codes {
                 for qrCode in codes {
                     let path = CGMutablePath()
-                    path.move(to: CGPoint(x: CGFloat(qrCode.topLeft.x), y: CGFloat(image.size.height - qrCode.topLeft.y)))
-                    path.addLine(to: CGPoint(x: CGFloat(qrCode.topRight.x), y: CGFloat(image.size.height - qrCode.topRight.y)))
-                    path.addLine(to: CGPoint(x: CGFloat(qrCode.bottomRight.x), y: CGFloat(image.size.height - qrCode.bottomRight.y)))
-                    path.addLine(to: CGPoint(x: CGFloat(qrCode.bottomLeft.x), y: CGFloat(image.size.height - qrCode.bottomLeft.y)))
-                    path.closeSubpath()
-                    cgContext.addPath(path)
+                    if color == UIColor.red {
+                        let centerX = (qrCode.topLeft.x + qrCode.topRight.x + qrCode.bottomRight.x + qrCode.bottomLeft.x) / 4
+                        let centerY = (qrCode.topLeft.y + qrCode.topRight.y + qrCode.bottomRight.y + qrCode.bottomLeft.y) / 4
+
+                        // Convert the y-coordinate to match the image's coordinate system
+                        let center = CGPoint(x: CGFloat(centerX), y: CGFloat(image.size.height - centerY))
+
+                        // Calculate the radius based on the largest distance from the center to any corner
+                        let distances = [
+                            hypot(CGFloat(qrCode.topLeft.x) - center.x, CGFloat(image.size.height - qrCode.topLeft.y) - center.y),
+                            hypot(CGFloat(qrCode.topRight.x) - center.x, CGFloat(image.size.height - qrCode.topRight.y) - center.y),
+                            hypot(CGFloat(qrCode.bottomRight.x) - center.x, CGFloat(image.size.height - qrCode.bottomRight.y) - center.y),
+                            hypot(CGFloat(qrCode.bottomLeft.x) - center.x, CGFloat(image.size.height - qrCode.bottomLeft.y) - center.y)
+                        ]
+                        let radius = distances.max() ?? 0
+
+                        // Draw the circle
+                        let circleRect = CGRect(
+                            x: center.x - radius,
+                            y: center.y - radius,
+                            width: radius * 2,
+                            height: radius * 2
+                        )
+
+                        cgContext.setFillColor(UIColor.red.cgColor) // Set the fill color for the circle
+                        cgContext.addEllipse(in: circleRect)
+                        cgContext.fillPath()
+                    } else {
+                        path.move(to: CGPoint(x: CGFloat(qrCode.topLeft.x), y: CGFloat(image.size.height - qrCode.topLeft.y)))
+                        path.addLine(to: CGPoint(x: CGFloat(qrCode.topRight.x), y: CGFloat(image.size.height - qrCode.topRight.y)))
+                        path.addLine(to: CGPoint(x: CGFloat(qrCode.bottomRight.x), y: CGFloat(image.size.height - qrCode.bottomRight.y)))
+                        path.addLine(to: CGPoint(x: CGFloat(qrCode.bottomLeft.x), y: CGFloat(image.size.height - qrCode.bottomLeft.y)))
+                        path.closeSubpath()
+                        cgContext.addPath(path)
+                    }
                 }
                 cgContext.strokePath()
             }
