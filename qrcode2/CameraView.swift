@@ -406,8 +406,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 let detect = detectLaser(image: result.image!, frameCount: frameCount)
                 if detect.found {
                     print(frameCount, "LASER")
-//                    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(frameCount).jpg")
-//                    saveUIImage(result.image!, to: fileURL)
+                    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-original-\(frameCount).jpg")
+                    saveUIImage(result.image!, to: fileURL)
                     
                     let code = detect.codes[0]
 //                    print(code)
@@ -418,15 +418,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         self.laserSpots!.append(code)
                     }
                     let drawImage = self.drawOnImage(image: result.image!, codes: self.laserSpots, color: UIColor.red)
-                    let fileURL2 = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(self.frameCount).jpg")
-                    self.saveUIImage(drawImage!, to: fileURL2)
-//                    print(self.laserSpots!.count)
-//                    self.laserSpots?.forEach { spot in
-//                        print(spot)
-//                    }
+//                    let fileURL2 = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(self.frameCount).jpg")
+//                    self.saveUIImage(drawImage!, to: fileURL2)
                     DispatchQueue.main.async {
                         self.processedImage = drawImage
-                        self.originalImageSize = result.image!.size
+//                        self.originalImageSize = result.image!.size
 //                        print("cropped image \(self.originalImageSize)")
                     }
                 }
