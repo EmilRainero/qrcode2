@@ -8,6 +8,8 @@
 import Foundation
 import Security
 
+let tokenKey = "authToken"
+
 class KeychainManager {
     static let shared = KeychainManager()
 

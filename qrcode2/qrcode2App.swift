@@ -7,8 +7,10 @@
 
 import SwiftUI
 
+
 @main
 struct qrcode2App: App {
+
     var body: some Scene {
         WindowGroup {
 //            CameraView()
@@ -19,6 +21,6 @@ struct qrcode2App: App {
     }
     
     init() {
-        // add startup calls here
+        
     }
 }

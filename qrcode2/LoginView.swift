@@ -40,6 +40,7 @@ struct LoginView: View {
                     TextField("Username", text: $username)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocapitalization(.none)
+                        .disableAutocorrection(true)
                         .padding(.horizontal)
 
                     HStack {
@@ -82,6 +83,9 @@ struct LoginView: View {
                 .padding()
             }
         }
+        .onAppear {
+            checkAuthenticationStatus()
+        }
     }
 
     private func authenticateUser() {
@@ -92,14 +96,36 @@ struct LoginView: View {
             loginError = nil
             isLoggedIn = true
             print("Login successful")
+            var token = "\(username):\(password)"
+            if KeychainManager.shared.save(token: token, forKey: "authToken") {
+                print("saved authToken \(token)")
+            } else {
+                print("faled to save authToken")
+            }
+            
         } else {
             loginError = "Invalid username or password."
         }
     }
     
-    private func logout() {
+    public func logout() {
         username = ""
         password = ""
         isLoggedIn = false
+        if KeychainManager.shared.deleteToken(forKey: "authToken") {
+            print("deleted authToken")
+        } else {
+            print("faled to delete authToken")
+        }
+    }
+    
+    private func checkAuthenticationStatus() {
+        if let token = KeychainManager.shared.retrieveToken(forKey: "authToken") {
+            isLoggedIn = true
+            print("retrieved token \(token)")
+            print("go to mainview")
+        } else {
+            isLoggedIn = false
+        }
     }
 }
