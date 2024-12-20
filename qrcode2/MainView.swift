@@ -10,6 +10,8 @@ import Foundation
 
 
 struct MainView: View {
+    let onLogout: () -> Void
+    
     @State private var navigationPath = NavigationPath()  // Define a navigation path
     @State public var appStateMachine = AppStateMachine(initialState: .initial)
 
@@ -58,6 +60,20 @@ struct MainView: View {
                         .padding(.vertical, 10) // Adds vertical padding around the text
                         .padding(.horizontal, 20) // Adds horizontal padding for a wider button
                         .background(Color.blue) // Background color for the button
+                        .foregroundColor(.white) // Text color for the button
+                        .cornerRadius(25)
+                }
+                
+                Spacer().frame(height: 20)
+
+                Button(action: {
+                    onLogout()
+                }) {
+                    Text("Logout")
+                        .frame(width: 200)
+                        .padding(.vertical, 10) // Adds vertical padding around the text
+                        .padding(.horizontal, 20) // Adds horizontal padding for a wider button
+                        .background(Color.red) // Background color for the button
                         .foregroundColor(.white) // Text color for the button
                         .cornerRadius(25)
                 }
