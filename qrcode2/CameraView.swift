@@ -289,7 +289,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         // Perform Erosion: Removes small white regions
         let erodedMat = Mat()
         let erodeKernel = Mat.ones(rows: 7, cols: 7, type: CvType.CV_8U)  // 3x3 square kernel
-        Imgproc.erode(src: dilatedMat, dst: erodedMat, kernel: erodeKernel)
+        Imgproc.erode(src: thresholdMat, dst: erodedMat, kernel: erodeKernel)
 //        writeMaskToFile(erodedMat, filename: "erodedMat.jpg")
 
         let resultMat = Mat()
@@ -303,7 +303,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         let contours = NSMutableArray() // Create NSMutableArray to hold contours
         let hierarchy = Mat()
         Imgproc.findContours(
-            image: dilatedMat,
+            image: thresholdMat,
             contours: contours, // Pass NSMutableArray
             hierarchy: hierarchy,
             mode: RetrievalModes.RETR_EXTERNAL,
