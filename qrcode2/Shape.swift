@@ -7,25 +7,9 @@
 
 import Foundation
 
-// Base class
-//class Shape {
-//    var name: String
-//
-//    init(name: String) {
-//        self.name = name
-//    }
-//
-//    func area() -> Double {
-//        return 0.0 // Default implementation
-//    }
-//
-//    func description() -> String {
-//        return "This is a \(name) with an area of \(area())."
-//    }
-//}
 
 // Circle subclass
-class Circle {
+class Circle: Codable {
     var x, y, radius: Double
 
     init(x: Double, y: Double, radius: Double) {
@@ -37,10 +21,22 @@ class Circle {
     func area() -> Double {
         return Double.pi * radius * radius
     }
+    
+    func toJson() -> String? {
+        let encoder = JSONEncoder()
+//        encoder.outputFormatting = .prettyPrinted // Makes JSON output readable
+        do {
+            let jsonData = try encoder.encode(self)
+            return String(data: jsonData, encoding: .utf8)
+        } catch {
+            print("Failed to encode Circle to JSON: \(error)")
+            return nil
+        }
+    }
 }
 
 // Ellipse subclass
-class Ellipse {
+class Ellipse: Codable {
     var centerx: Double
     var centery: Double
     var majorAxis: Double
@@ -56,11 +52,31 @@ class Ellipse {
     func area() -> Double {
         return Double.pi * majorAxis * minorAxis
     }
+    
+    func toJson() -> String? {
+        let encoder = JSONEncoder()
+//        encoder.outputFormatting = .prettyPrinted // Makes JSON output readable
+        do {
+            let jsonData = try encoder.encode(self)
+            return String(data: jsonData, encoding: .utf8)
+        } catch {
+            print("Failed to encode Ellipse to JSON: \(error)")
+            return nil
+        }
+    }
+    
+    func getCGPoint() -> CGPoint {
+        return CGPoint(x: self.centerx - self.majorAxis/2, y: self.centery - self.minorAxis/2)
+    }
+    
+    func getCGSize() -> CGSize {
+        return CGSize(width: self.majorAxis, height: self.minorAxis)
+    }
 }
 
 func isCircleOverlappingEllipse(circle: Circle, ellipse: Ellipse) -> Bool {
-    let a = ellipse.majorAxis
-    let b = ellipse.minorAxis
+    let a = ellipse.majorAxis / 2
+    let b = ellipse.minorAxis / 2
 
     // Check if the circle's center is inside the ellipse
     let ellipseEquation = pow(circle.x - ellipse.centerx, 2) / pow(a, 2) + pow(circle.y - ellipse.centery, 2) / pow(b, 2)
