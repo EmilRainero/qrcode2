@@ -159,6 +159,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     private var qrCodeMap: [Int32: [DetectedQRCode]] = [:]
     public var rectifiedImage: UIImage? = .none
     private var corners: [DetectedQRCode] = []
+    private var lastFrame: UIImage? = .none
 
     
     init(appStateMachine: AppStateMachine) {
@@ -402,29 +403,31 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         if outputImage != nil {
             if appStateMachine.currentState == .runningSession {
                 let result = rectifyImageForMultipleCodes(image: tempImage!, using: self.corners)
-//                testOpenCV2(uiImage: result.image!)
                 let detect = detectLaser(image: result.image!, frameCount: frameCount)
                 if detect.found {
+                    let target = processTarget(image: self.lastFrame!)
+                    
                     print(frameCount, "LASER")
                     let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-original-\(frameCount).jpg")
                     saveUIImage(result.image!, to: fileURL)
                     
                     let code = detect.codes[0]
-//                    print(code)
                     
+                    let x = (code.topLeft.x + code.topRight.x) / 2
+                    let y = (code.topLeft.y + code.bottomLeft.y) / 2
+                    let score = target.getScore(x: x, y: y, radius:2.5)
+                    print("LASER SCORE \(score)")
                     if self.laserSpots == nil {
                         self.laserSpots = [code]
                     } else {
                         self.laserSpots!.append(code)
                     }
                     let drawImage = self.drawOnImage(image: result.image!, codes: self.laserSpots, color: UIColor.red)
-//                    let fileURL2 = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(self.frameCount).jpg")
-//                    self.saveUIImage(drawImage!, to: fileURL2)
                     DispatchQueue.main.async {
                         self.processedImage = drawImage
-//                        self.originalImageSize = result.image!.size
-//                        print("cropped image \(self.originalImageSize)")
                     }
+                } else {
+                    self.lastFrame = result.image
                 }
                 
             }

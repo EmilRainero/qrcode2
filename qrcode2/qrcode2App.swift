@@ -16,8 +16,8 @@ struct qrcode2App: App {
 //            CameraView()
 //            ContentView()
 //            MainView()
-//            LoginView()
-            IContentView()
+            LoginView()
+//            IContentView()
         }
     }
     

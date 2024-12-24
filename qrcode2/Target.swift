@@ -67,17 +67,17 @@ class Target {
         let circle = Circle(x: x, y: y, radius: radius)
         for i in 0..<self.rings.count {
             if isCircleOverlappingEllipse(circle: circle, ellipse: self.rings[i].ellipse) {
-                print("getScore \(i) \(self.rings[i].score)")
-                print("circle: \(circle.toJson()!) ellipse: \(self.rings[i].ellipse.toJson()!)")
+//                print("getScore \(i) \(self.rings[i].score)")
+//                print("circle: \(circle.toJson()!) ellipse: \(self.rings[i].ellipse.toJson()!)")
                 return self.rings[i].score
             }
         }
-        print("getScore failed")
+//        print("getScore failed")
         return 0
     }
 }
 
-func processTarget(image: UIImage) -> UIImage? {
+func processTarget(image: UIImage) -> Target {
     let src = Mat(uiImage: image)
     let grayMat = Mat()
 
@@ -135,7 +135,7 @@ func processTarget(image: UIImage) -> UIImage? {
     let newImage = drawOnImage(image: image, rects: boxes, target: target)
     let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("bboxes.jpg")
     saveUIImage(newImage!, to: fileURL)
-    return newImage
+    return target
 }
 
 func drawOnImage(image: UIImage, rects: [CGRect], target: Target) -> UIImage? {
@@ -184,7 +184,7 @@ func drawOnImage(image: UIImage, rects: [CGRect], target: Target) -> UIImage? {
             let rect = CGRect(origin: CGPoint(x: x-2, y: y-2), size: CGSize(width:5, height:5))
             let score = target.getScore(x: x, y: y, radius:2.5)
             
-            print("color \(uniqueColors[score])")
+//            print("color \(uniqueColors[score])")
             cgContext.setFillColor(uniqueColors[score].cgColor)
 
             cgContext.addEllipse(in: rect)
@@ -208,5 +208,19 @@ func saveUIImage(_ image: UIImage, to fileURL: URL) -> Bool {
     } catch {
         print("Error saving image: \(error)")
         return false
+    }
+}
+
+func saveMatToFile(mat: Mat, fileName: String) {
+    // Define the file path where the image will be saved
+    let fileManager = FileManager.default
+    let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+    let fileURL = documentsURL.appendingPathComponent(fileName)
+
+    // Save the Mat to the file path
+    if Imgcodecs.imwrite(filename: fileURL.path, img: mat) {
+        print("Image successfully saved to \(fileURL.path)")
+    } else {
+        print("Failed to save the image.")
     }
 }
