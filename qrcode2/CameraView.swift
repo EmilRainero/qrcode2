@@ -19,6 +19,7 @@ struct CameraView: View {
     @Binding var appStateMachine: AppStateMachine
 
     @StateObject private var cameraManager: CameraManager
+    @State private var temporaryNumber: Int? = nil // Holds the number to display temporarily
 
     init(navigationPath: Binding<NavigationPath>, appStateMachine: Binding<AppStateMachine>) {
         self._navigationPath = navigationPath
@@ -32,6 +33,14 @@ struct CameraView: View {
         ZStack {
             if let image = cameraManager.processedImage {
                 ZStack(alignment: .top) { // Align child views to the top
+                    if let number = temporaryNumber {
+                        Text("\(number)")
+                            .font(.largeTitle)
+                            .padding()
+                            .background(Color.yellow)
+                            .cornerRadius(10)
+                            .transition(.opacity)
+                    }
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
@@ -95,6 +104,9 @@ struct CameraView: View {
             result = "Calibrating \((cameraManager.calibrationTime - cameraManager.frameCount + cameraManager.frameRate - 1) / cameraManager.frameRate)"
         case (.runningSession):
             result = .none
+            if cameraManager.shotsFired > 0  {
+                result = "Shots: \(cameraManager.shotsFired)  Score: +\(cameraManager.score) = \(cameraManager.totalScore)"
+            }
         case (.calibrationFailed):
             result = "Calibration Failed"
         case (.sessionEnded):
@@ -149,6 +161,10 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var calibrationTime: Int32 = 15 * 30
     @Published var delayStartTime: Int32 = 5 * 30
     @Published var sessionTime: Int32 = 60 * 30
+    @Published var score: Int32 = 0
+    @Published var totalScore: Int32 = 0
+    @Published var shotsFired: Int32 = 0
+
 
     private var detectedQRCodes: [DetectedQRCode]? = []
     private var laserSpots: [DetectedQRCode]?
@@ -407,15 +423,16 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 if detect.found {
                     let target = processTarget(image: self.lastFrame!)
                     
-                    print(frameCount, "LASER")
-                    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-original-\(frameCount).jpg")
-                    saveUIImage(result.image!, to: fileURL)
+//                    print(frameCount, "LASER")
+//                    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-original-\(frameCount).jpg")
+//                    saveUIImage(result.image!, to: fileURL)
                     
                     let code = detect.codes[0]
                     
                     let x = (code.topLeft.x + code.topRight.x) / 2
                     let y = (code.topLeft.y + code.bottomLeft.y) / 2
                     let score = target.getScore(x: x, y: y, radius:2.5)
+                    
                     print("LASER SCORE \(score)")
                     if self.laserSpots == nil {
                         self.laserSpots = [code]
@@ -424,6 +441,9 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     }
                     let drawImage = self.drawOnImage(image: result.image!, codes: self.laserSpots, color: UIColor.red)
                     DispatchQueue.main.async {
+                        self.score = score
+                        self.totalScore += self.score
+                        self.shotsFired += 1
                         self.processedImage = drawImage
                     }
                 } else {

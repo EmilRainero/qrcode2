@@ -63,13 +63,13 @@ class Target {
         }
     }
     
-    func getScore(x: Double, y: Double, radius: Double) -> Int {
+    func getScore(x: Double, y: Double, radius: Double) -> Int32 {
         let circle = Circle(x: x, y: y, radius: radius)
         for i in 0..<self.rings.count {
             if isCircleOverlappingEllipse(circle: circle, ellipse: self.rings[i].ellipse) {
 //                print("getScore \(i) \(self.rings[i].score)")
 //                print("circle: \(circle.toJson()!) ellipse: \(self.rings[i].ellipse.toJson()!)")
-                return self.rings[i].score
+                return Int32(self.rings[i].score)
             }
         }
 //        print("getScore failed")
@@ -98,7 +98,7 @@ func processTarget(image: UIImage) -> Target {
     // ConnectedComponents with connectivity 8 (for 8-connected components)
     let numComponents = Imgproc.connectedComponentsWithStats(image: thresholdMat, labels: labels, stats: stats, centroids: centroids, connectivity: 4)
     // Print the number of connected components
-    print("Number of connected components: \(numComponents)")
+//    print("Number of connected components: \(numComponents)")
 
     var boxes: [CGRect] = []
     for i in 0..<numComponents {
@@ -110,7 +110,7 @@ func processTarget(image: UIImage) -> Target {
         let area = Int(stat.get(row: 0, col: 4)[0])
         
         if x != 0 && height >= 12 && width >= 12 {
-            print("x: \(x), y: \(y), width: \(width), height: \(height), area: \(width * height)")
+//            print("x: \(x), y: \(y), width: \(width), height: \(height), area: \(width * height)")
             
             let origin = CGPoint(x: x, y: y)
             let size = CGSize(width: width, height: height)
@@ -129,12 +129,12 @@ func processTarget(image: UIImage) -> Target {
         target.addRing(ring: ring)
     }
     target.assignScores()
-    target.printdetails()
+//    target.printdetails()
     
-    print("boxes \(boxes.count)")
-    let newImage = drawOnImage(image: image, rects: boxes, target: target)
-    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("bboxes.jpg")
-    saveUIImage(newImage!, to: fileURL)
+//    print("boxes \(boxes.count)")
+//    let newImage = drawOnImage(image: image, rects: boxes, target: target)
+//    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("bboxes.jpg")
+//    saveUIImage(newImage!, to: fileURL)
     return target
 }
 
@@ -185,7 +185,7 @@ func drawOnImage(image: UIImage, rects: [CGRect], target: Target) -> UIImage? {
             let score = target.getScore(x: x, y: y, radius:2.5)
             
 //            print("color \(uniqueColors[score])")
-            cgContext.setFillColor(uniqueColors[score].cgColor)
+            cgContext.setFillColor(uniqueColors[Int(score)].cgColor)
 
             cgContext.addEllipse(in: rect)
             cgContext.fillPath()

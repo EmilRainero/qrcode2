@@ -93,8 +93,8 @@ struct IContentView: View {
                 let rect = CGRect(origin: CGPoint(x: x-2, y: y-2), size: CGSize(width:5, height:5))
                 let score = target.getScore(x: x, y: y, radius:2.5)
                 
-                print("color \(uniqueColors[score])")
-                cgContext.setFillColor(uniqueColors[score].cgColor)
+//                print("color \(uniqueColors[score])")
+                cgContext.setFillColor(uniqueColors[Int(score)].cgColor)
 
                 cgContext.addEllipse(in: rect)
                 cgContext.fillPath()

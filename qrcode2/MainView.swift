@@ -100,6 +100,37 @@ struct MainView: View {
 //            navigationPath.append("start")
         }
     }
+    
+}
+
+func displayNumber(on view: UIView, number: Int) {
+    // Create the label
+    let label = UILabel()
+    label.text = "\(number)"
+    label.font = UIFont.systemFont(ofSize: 100, weight: .bold) // Large font
+    label.textColor = .black
+    label.textAlignment = .center
+    label.backgroundColor = UIColor.white.withAlphaComponent(0.8)
+    label.layer.cornerRadius = 10
+    label.layer.masksToBounds = true
+
+    // Set the size and position of the label
+    label.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(label)
+    NSLayoutConstraint.activate([
+        label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+        label.widthAnchor.constraint(equalToConstant: 200),
+        label.heightAnchor.constraint(equalToConstant: 150)
+    ])
+
+    // Animate the label to fade out after 1 second
+    UIView.animate(withDuration: 0.5, delay: 1, options: [], animations: {
+        label.alpha = 0
+    }) { _ in
+        // Remove the label after the animation
+        label.removeFromSuperview()
+    }
 }
 
 func deleteAllTemporaryFiles() {
