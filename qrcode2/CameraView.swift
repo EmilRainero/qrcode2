@@ -33,14 +33,6 @@ struct CameraView: View {
         ZStack {
             if let image = cameraManager.processedImage {
                 ZStack(alignment: .top) { // Align child views to the top
-                    if let number = temporaryNumber {
-                        Text("\(number)")
-                            .font(.largeTitle)
-                            .padding()
-                            .background(Color.yellow)
-                            .cornerRadius(10)
-                            .transition(.opacity)
-                    }
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
@@ -103,14 +95,12 @@ struct CameraView: View {
         case (.calibrating):
             result = "Calibrating \((cameraManager.calibrationTime - cameraManager.frameCount + cameraManager.frameRate - 1) / cameraManager.frameRate)"
         case (.runningSession):
-            result = .none
-            if cameraManager.shotsFired > 0  {
-                result = "Shots: \(cameraManager.shotsFired)  Score: +\(cameraManager.score) = \(cameraManager.totalScore)"
-            }
+            let secondsRemaining = (cameraManager.sessionTime - cameraManager.frameCount) / cameraManager.frameRate
+            result = "Session - Seconds remaining: \(secondsRemaining)"
         case (.calibrationFailed):
             result = "Calibration Failed"
         case (.sessionEnded):
-            result = "Session Ended"
+            result = "Session Final Score"
         case (.startRunningSession):
             result = "Get ready to start \((cameraManager.delayStartTime - cameraManager.frameCount + cameraManager.frameRate - 1) / cameraManager.frameRate)"
         default:
@@ -131,9 +121,16 @@ struct CameraView: View {
         case (.startRunningSession):
             result = .none
         case (.runningSession):
-            result = .none
+            if cameraManager.shotsFired > 0 {
+                result = "Shots: \(cameraManager.shotsFired)  Score: +\(cameraManager.score) = \(cameraManager.totalScore)"
+            } else {
+                result = "Shots: \(cameraManager.shotsFired)  Score: \(cameraManager.totalScore)"
+            }
         case (.sessionEnded):
             result = .none
+            if cameraManager.shotsFired > 0  {
+                result = "Shots: \(cameraManager.shotsFired)  Score: \(cameraManager.totalScore)"
+            }
         case (.calibrationFailed):
             result = .none
         default:
@@ -160,7 +157,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var frameRate: Int32 = 30
     @Published var calibrationTime: Int32 = 15 * 30
     @Published var delayStartTime: Int32 = 5 * 30
-    @Published var sessionTime: Int32 = 60 * 30
+    @Published var sessionTime: Int32 = 30 * 30
     @Published var score: Int32 = 0
     @Published var totalScore: Int32 = 0
     @Published var shotsFired: Int32 = 0
@@ -615,7 +612,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         
                         print("LASER Frame: \(frameCount) SCORE \(score) ")
 
-                        let drawImage = self.drawOnImage(image: self.lastFrame!, codes: self.laserSpots, color: UIColor.red)
+//                        let drawImage = self.drawOnImage(image: self.lastFrame!, codes: self.laserSpots, color: UIColor.red)
+                        let drawImage = self.drawOnImage(image: result.image!, codes: self.laserSpots, color: UIColor.red)
                         DispatchQueue.main.async {
                             self.score = score
                             self.totalScore += self.score
@@ -627,7 +625,9 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 } else {
                     self.lastFrame = result.image
                 }
-                
+                DispatchQueue.main.async {
+                    self.processedImage = self.processedImage  // causes UI to refresh to show seconds remaining
+                }
             }
             
             if appStateMachine.currentState == .initial || appStateMachine.currentState == .calibrating{
@@ -715,7 +715,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             }
 //            let newImage = self.drawOnImage(image: tempImage!, codes: self.detectedQRCodes, color: UIColor.green)
             
-            if appStateMachine.currentState != .runningSession {
+            if appStateMachine.currentState != .runningSession && appStateMachine.currentState != .sessionEnded {
                 DispatchQueue.main.async {
                     if self.rectifiedImage != nil {
                         self.processedImage = self.rectifiedImage
@@ -750,7 +750,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             frameCount = 0
         }
         if appStateMachine.currentState == .runningSession && frameCount == sessionTime {
-            self.detectedQRCodes = []
+//            self.detectedQRCodes = []
             DispatchQueue.main.async {
                 self.appStateMachine.handle(event: .endRunSession)
             }
