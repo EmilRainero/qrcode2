@@ -656,7 +656,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         }
 
                         qrCodeMap[frameCount] = codes
-                        let numberSequentialKeys: Int32 = 10
+                        let numberSequentialKeys: Int32 = 5
                         if qrCodeMap.count >= numberSequentialKeys {
                             let lastNkeys = qrCodeMap.keys.sorted().suffix(Int(numberSequentialKeys))
 //                            print(lastNkeys)
@@ -753,6 +753,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 //            self.detectedQRCodes = []
             DispatchQueue.main.async {
                 self.appStateMachine.handle(event: .endRunSession)
+                self.processedImage = self.processedImage
             }
         }
     }
@@ -771,10 +772,15 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             cgContext.setLineJoin(.miter)
             cgContext.setLineCap(.square)
 
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.boldSystemFont(ofSize: 20),
+                .foregroundColor: UIColor.black
+            ]
 
             // Draw the QR code boundaries
             if let codes = codes {
-                for qrCode in codes {
+                for i in 0..<codes.count{
+                    let qrCode = codes[i]
                     let path = CGMutablePath()
                     if color == UIColor.red {
                         let centerX = (qrCode.topLeft.x + qrCode.topRight.x + qrCode.bottomRight.x + qrCode.bottomLeft.x) / 4
@@ -804,6 +810,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         cgContext.setFillColor(UIColor.red.cgColor) // Set the fill color for the circle
                         cgContext.addEllipse(in: circleRect)
                         cgContext.fillPath()
+                        
+                        let text = "\(i+1)"
+                                
+                        let attributedText = NSAttributedString(string: text, attributes: attributes)
+                        attributedText.draw(at: CGPoint(x: center.x-6, y: center.y-11))
                     } else {
                         path.move(to: CGPoint(x: CGFloat(qrCode.topLeft.x), y: CGFloat(image.size.height - qrCode.topLeft.y)))
                         path.addLine(to: CGPoint(x: CGFloat(qrCode.topRight.x), y: CGFloat(image.size.height - qrCode.topRight.y)))
