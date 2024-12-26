@@ -88,7 +88,7 @@ func processTarget(image: UIImage) -> Target {
     let thresholdMat = Mat()
     Imgproc.threshold(src: grayMat, dst: thresholdMat, thresh: 128, maxval: 255, type: .THRESH_BINARY_INV)
 
-    saveMatToFile(mat: thresholdMat, fileName: "thresholdMat.png")
+//    saveMatToFile(mat: thresholdMat, fileName: "thresholdMat.png")
 
     // Use connectedComponents to find connected components in the binary image
     let labels = Mat()

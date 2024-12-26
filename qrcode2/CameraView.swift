@@ -182,11 +182,20 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         self.appStateMachine = appStateMachine
     }
     
-    func testFindLaser() {
+    func testDetectLaser() {
         let images = [
-            "image_00280",
-            "image_00294", "image_00295", "image_00389", "image_00390", "image_00479", "image_00480",
-            "image_00543", "image_00544", "image_00598", "image_00656", "image_00705", "image_00706"
+//            "laser-25"
+//            , 
+            "laser-26"
+//            "image_00280",
+//            "image_00294",
+//            "image_00295"
+//            ,
+//            "image_00389", "image_00390", "image_00479", "image_00480",
+//            "image_00543"
+//            ,
+//            "image_00544"
+//            , "image_00598", "image_00656", "image_00705", "image_00706"
         ]
         
         for imageFilename in images {
@@ -194,10 +203,12 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             let result = self.detectLaser(image: image, frameCount: 0)
             print(imageFilename, result.found)
         }
+        
+        print("done")
     }
     
     func startCapture() {
-//        testFindLaser()
+//        testDetectLaser()
 //        return
         
         captureSession = AVCaptureSession()
@@ -283,7 +294,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         return UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
     }
     
-    func detectLaser(image: UIImage, frameCount: Int32) -> (found: Bool, codes: [DetectedQRCode]) {
+    func detectLaserOriginal(image: UIImage, frameCount: Int32) -> (found: Bool, codes: [DetectedQRCode]) {
         let cropRect = CGRect(x: 0, y: 200, width: Int(image.size.width), height: 1000)
         let newImage = cropImage(image, toRect: cropRect)
         let uiImage = newImage!
@@ -346,7 +357,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 // Calculate the bounding box
                 let boundingBox = Imgproc.boundingRect(array: contourMatOfPoint)
                 
-//                print("Bounding Box (x: \(boundingBox.x), y: \(boundingBox.y), width: \(boundingBox.width), height: \(boundingBox.height))")
+                print("Bounding Box (x: \(boundingBox.x), y: \(boundingBox.y), width: \(boundingBox.width), height: \(boundingBox.height))")
                 
                 boundingBoxes.append(boundingBox)
                 let y: Int = Int(dilatedMat.size().height)
@@ -359,7 +370,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     width: boundingBox.width,
                     height: boundingBox.height
                 )
-                if boundingBox.width >= 8 && boundingBox.height >= 8 && boundingBox.width < 100 && boundingBox.height < 100 {
+                if boundingBox.width >= 6 && boundingBox.height >= 6 && boundingBox.width < 100 && boundingBox.height < 100 {
                     if codes.count == 0 {
                         codes.append(code)
                     } else {
@@ -379,6 +390,157 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
         return (found: codes.count > 0, codes: codes)
     }
+    
+    func detectLaser(image: UIImage, frameCount: Int32) -> (found: Bool, codes: [DetectedQRCode]) {
+        let writeImages = false
+        
+        let cropRect = CGRect(x: 0, y: 200, width: Int(image.size.width), height: 1000)
+        guard let newImage = cropImage(image, toRect: cropRect) else {
+            return (found: false, codes: [])
+        }
+
+        let src = Mat(uiImage: newImage)
+        let hsvMat = Mat()
+
+        // Convert to HSV color space
+        Imgproc.cvtColor(src: src, dst: hsvMat, code: ColorConversionCodes.COLOR_BGR2HSV)
+//        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(frameCount).jpg")
+//        if writeImages { saveUIImage(image, to: fileURL) }
+
+        var hsvChannels: [Mat] = []
+        Core.split(m: hsvMat, mv: &hsvChannels)
+
+        // Access the Hue channel
+        let valueChannel = Mat()
+        Imgproc.threshold(src: hsvChannels[2], dst: valueChannel, thresh: 230, maxval: 255, type: .THRESH_BINARY)
+
+
+//        if writeImages { saveMatToFile(mat: hsvChannels[0], fileName: "hueChannel.png") }
+//        if writeImages { saveMatToFile(mat: hsvChannels[1], fileName: "saturationChannel.png") }
+//        if writeImages { saveMatToFile(mat: hsvChannels[2], fileName: "valueChannel.png") }
+
+        // Create masks for bright white and reddish spots
+        var whiteMask = Mat()
+
+        // Bright white mask (high value, low saturation)
+        Core.inRange(
+            src: hsvMat,
+            lowerb: Scalar(0, 0, 230),      // Low saturation, high value
+            upperb: Scalar(180, 30, 255),  // Low saturation, maximum value
+            dst: whiteMask
+        )
+        if writeImages { saveMatToFile(mat: whiteMask, fileName: "original-whiteMask.png") }
+
+        let kernel = Mat.ones(rows: 3, cols: 3, type: CvType.CV_8U)  // 3x3 square kernel
+        var erodedMat = Mat()
+        Imgproc.erode(src: whiteMask, dst: erodedMat, kernel: kernel)
+        var dilatedMat = Mat()
+        Imgproc.dilate(src: erodedMat, dst: dilatedMat, kernel: kernel)
+        whiteMask = dilatedMat
+        if writeImages { saveMatToFile(mat: whiteMask, fileName: "whiteMask.png") }
+
+        let lowerb = Scalar(0, 30, 128)   // Minimum saturation and value to exclude gray and dark regions
+        let upperb = Scalar(180, 255, 255) // Maximum saturation and value to include all bright colors
+
+        // Apply the mask
+        var nonGrayMask = Mat()
+        Core.inRange(
+            src: hsvMat,
+            lowerb: lowerb,
+            upperb: upperb,
+            dst: nonGrayMask
+        )
+        
+        nonGrayMask = valueChannel
+        
+        if writeImages { saveMatToFile(mat: nonGrayMask, fileName: "original-nonGrayMask.png") }
+        erodedMat = Mat()
+        Imgproc.erode(src: nonGrayMask, dst: erodedMat, kernel: kernel)
+        if writeImages { saveMatToFile(mat: erodedMat, fileName: "aftererode-nonGrayMask.png") }
+        dilatedMat = Mat()
+        Imgproc.dilate(src: erodedMat, dst: dilatedMat, kernel: kernel)
+        if writeImages { saveMatToFile(mat: dilatedMat, fileName: "afterdilate-nonGrayMask.png") }
+
+        nonGrayMask = dilatedMat
+        if writeImages { saveMatToFile(mat: nonGrayMask, fileName: "nonGrayMask.png") }
+        
+        // Combine white and non grey
+        let combinedMask = Mat()
+        Core.bitwise_or(src1: whiteMask, src2: nonGrayMask, dst: combinedMask)
+
+        // Save the mask for debugging
+//        saveMatToFile(mat: combinedMask, fileName: "combinedMask.png")
+        
+        // Perform Dilation: Restores the white regions
+        dilatedMat = Mat()
+        Imgproc.dilate(src: combinedMask, dst: dilatedMat, kernel: kernel)
+        erodedMat = Mat()
+        Imgproc.erode(src: dilatedMat, dst: erodedMat, kernel: kernel)
+        if writeImages { saveMatToFile(mat: erodedMat, fileName: "erodedMat.png") }
+        
+        
+        // Use connectedComponents to find connected components in the binary mask
+        let labels = Mat()
+        let stats = Mat()
+        let centroids = Mat()
+
+        if writeImages { saveMatToFile(mat: combinedMask, fileName: "combinedMask.png") }
+
+        // ConnectedComponents with connectivity 8
+        let numComponents = Imgproc.connectedComponentsWithStats(
+            image: erodedMat,
+            labels: labels,
+            stats: stats,
+            centroids: centroids,
+            connectivity: 8
+        )
+
+//        print("Number of components: \(numComponents)")
+
+        // Process the components to identify regions of interest
+        var codes: [DetectedQRCode] = []
+        for i in 0..<numComponents { // Skip the background (component 0)
+            let stat = stats.row(i)
+            let x = Int32(stat.get(row: 0, col: 0)[0])
+            let y = Int32(stat.get(row: 0, col: 1)[0])
+            let width = Int32(stat.get(row: 0, col: 2)[0])
+            let height = Int32(stat.get(row: 0, col: 3)[0])
+            let area = Int32(stat.get(row: 0, col: 4)[0])
+
+//            if area > 50 { // Filter out small noise
+////                print("Component \(i): x=\(x), y=\(y), width=\(width), height=\(height), area=\(area)")
+//                return (found: true, codes: codes)
+////                detectedCodes.append(DetectedQRCode(x: x, y: y, width: width, height: height))
+//            }
+            
+//            print("Component \(i): x=\(x), y=\(y), width=\(width), height=\(height), area=\(area)")
+
+            let maxY: Int = Int(dilatedMat.size().height)
+            let code = DetectedQRCode(
+                message: "frame \(frameCount)",
+                topLeft: CGPoint(x: Int(x), y: maxY - Int(y)),
+                topRight: CGPoint(x: Int(x + width), y: maxY - Int(y)),
+                bottomLeft: CGPoint(x: Int(x), y: maxY - Int(y + height)),
+                bottomRight: CGPoint(x: Int(x + width), y: maxY - Int(y + height)),
+                width: width,
+                height: height,
+                frame: frameCount
+            )
+            if width >= 6 && height >= 6 && width < 100 && height < 100 {
+                if codes.count == 0 {
+                    codes.append(code)
+                } else {
+                    if width * height > codes[0].width * codes[0].height {
+                        codes = [code]
+                    }
+                }
+//                    print(code)
+            }
+        }
+
+        return (found: codes.count > 0, codes: codes)
+    }
+
     
     func convertCIImageToUIImage(_ ciImage: CIImage) -> UIImage? {
         // Create a CIContext
@@ -419,6 +581,10 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         if outputImage != nil {
             if appStateMachine.currentState == .runningSession {
                 let result = rectifyImageForMultipleCodes(image: tempImage!, using: self.corners)
+                
+//                let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(frameCount).jpg")
+//                saveUIImage(result.image!, to: fileURL)
+                
                 let detect = detectLaser(image: result.image!, frameCount: frameCount)
                 if detect.found {
                     let target = processTarget(image: self.lastFrame!)
@@ -429,22 +595,34 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     
                     let code = detect.codes[0]
                     
-                    let x = (code.topLeft.x + code.topRight.x) / 2
-                    let y = (code.topLeft.y + code.bottomLeft.y) / 2
-                    let score = target.getScore(x: x, y: y, radius:2.5)
                     
-                    print("LASER SCORE \(score)")
+                    var skip = false
                     if self.laserSpots == nil {
                         self.laserSpots = [code]
                     } else {
-                        self.laserSpots!.append(code)
+                        if !self.laserSpots!.isEmpty &&
+                            self.laserSpots![self.laserSpots!.count-1].frame == frameCount - 1 {
+                            self.laserSpots![self.laserSpots!.count-1].frame = frameCount
+                            skip = true
+                        } else {
+                            self.laserSpots!.append(code)
+                        }
                     }
-                    let drawImage = self.drawOnImage(image: result.image!, codes: self.laserSpots, color: UIColor.red)
-                    DispatchQueue.main.async {
-                        self.score = score
-                        self.totalScore += self.score
-                        self.shotsFired += 1
-                        self.processedImage = drawImage
+                    if !skip {
+                        let x = (code.topLeft.x + code.topRight.x) / 2
+                        let y = (code.topLeft.y + code.bottomLeft.y) / 2
+                        let score = target.getScore(x: x, y: y, radius:2.5)
+                        
+                        print("LASER Frame: \(frameCount) SCORE \(score) ")
+
+                        let drawImage = self.drawOnImage(image: self.lastFrame!, codes: self.laserSpots, color: UIColor.red)
+                        DispatchQueue.main.async {
+                            self.score = score
+                            self.totalScore += self.score
+                            self.shotsFired += 1
+                            self.processedImage = drawImage
+                            AudioServicesPlaySystemSound(1057)
+                        }
                     }
                 } else {
                     self.lastFrame = result.image
@@ -612,12 +790,13 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                             hypot(CGFloat(qrCode.bottomRight.x) - center.x, CGFloat(image.size.height - qrCode.bottomRight.y) - center.y),
                             hypot(CGFloat(qrCode.bottomLeft.x) - center.x, CGFloat(image.size.height - qrCode.bottomLeft.y) - center.y)
                         ]
-                        let radius = distances.max() ?? 0
+                        var radius = distances.max() ?? 0
 
+                        radius = 10
                         // Draw the circle
                         let circleRect = CGRect(
-                            x: center.x - radius,
-                            y: center.y - radius,
+                            x: center.x-radius,
+                            y: center.y-radius,
                             width: radius * 2,
                             height: radius * 2
                         )
