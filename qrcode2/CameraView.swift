@@ -364,14 +364,14 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     topRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y)),
                     bottomLeft: CGPoint(x: Int(boundingBox.x), y: y - Int(boundingBox.y + boundingBox.height)),
                     bottomRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y + boundingBox.height)),
-                    width: boundingBox.width,
-                    height: boundingBox.height
+                    width: CGFloat(boundingBox.width),
+                    height: CGFloat(boundingBox.height)
                 )
                 if boundingBox.width >= 6 && boundingBox.height >= 6 && boundingBox.width < 100 && boundingBox.height < 100 {
                     if codes.count == 0 {
                         codes.append(code)
                     } else {
-                        if boundingBox.width * boundingBox.height > codes[0].width * codes[0].height {
+                        if CGFloat(boundingBox.width * boundingBox.height) > codes[0].width * codes[0].height {
                             codes = [code]
                         }
                     }
@@ -513,21 +513,21 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 //            print("Component \(i): x=\(x), y=\(y), width=\(width), height=\(height), area=\(area)")
 
             let maxY: Int = Int(dilatedMat.size().height)
-            let code = DetectedQRCode(
+            var code = DetectedQRCode(
                 message: "frame \(frameCount)",
                 topLeft: CGPoint(x: Int(x), y: maxY - Int(y)),
                 topRight: CGPoint(x: Int(x + width), y: maxY - Int(y)),
                 bottomLeft: CGPoint(x: Int(x), y: maxY - Int(y + height)),
                 bottomRight: CGPoint(x: Int(x + width), y: maxY - Int(y + height)),
-                width: width,
-                height: height,
-                frame: frameCount
+                width: CGFloat(width),
+                height: CGFloat(height)
             )
+            code.frame = frameCount
             if width >= 6 && height >= 6 && width < 100 && height < 100 {
                 if codes.count == 0 {
                     codes.append(code)
                 } else {
-                    if width * height > codes[0].width * codes[0].height {
+                    if CGFloat(width * height) > codes[0].width * codes[0].height {
                         codes = [code]
                     }
                 }
@@ -643,8 +643,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                                 topRight: feature.topRight,
                                 bottomLeft: feature.bottomLeft,
                                 bottomRight: feature.bottomRight,
-                                width: Int32(feature.topRight.x - feature.topLeft.x),
-                                height: Int32(feature.topLeft.y - feature.bottomLeft.y)
+                                width: CGFloat(feature.topRight.x - feature.topLeft.x),
+                                height: CGFloat(feature.topLeft.y - feature.bottomLeft.y)
                             )
                             codes.append(code)
                         }
@@ -694,8 +694,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                                     topRight: result.upperRight!,
                                     bottomLeft: result.lowerLeft!,
                                     bottomRight: result.lowerRight!,
-                                    width: Int32(result.upperRight!.x - result.upperLeft!.x),
-                                    height: Int32(result.upperLeft!.y - result.lowerLeft!.y)
+                                    width: CGFloat(result.upperRight!.x - result.upperLeft!.x),
+                                    height: CGFloat(result.upperLeft!.y - result.lowerLeft!.y)
                                 )
                                 codes = []
                                 self.detectedQRCodes = codes
@@ -942,8 +942,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     topRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y)),
                     bottomLeft: CGPoint(x: Int(boundingBox.x), y: y - Int(boundingBox.y + boundingBox.height)),
                     bottomRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y + boundingBox.height)),
-                    width: boundingBox.width,
-                    height: boundingBox.height
+                    width: CGFloat(boundingBox.width),
+                    height: CGFloat(boundingBox.height)
                 )
                 if boundingBox.width >= 10 && boundingBox.height >= 10 {
                     codes.append(code)

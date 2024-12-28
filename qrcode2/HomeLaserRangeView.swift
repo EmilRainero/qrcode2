@@ -240,8 +240,8 @@ struct HomeLaserRangeView: View {
                     topRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y)),
                     bottomLeft: CGPoint(x: Int(boundingBox.x), y: y - Int(boundingBox.y + boundingBox.height)),
                     bottomRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y + boundingBox.height)),
-                    width: Int32(boundingBox.width),
-                    height: Int32(boundingBox.width)
+                    width: CGFloat(boundingBox.width),
+                    height: CGFloat(boundingBox.width)
                 )
                 if boundingBox.width >= 10 && boundingBox.height >= 10 {
                     codes.append(code)
@@ -339,8 +339,8 @@ struct HomeLaserRangeView: View {
                     topRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y)),
                     bottomLeft: CGPoint(x: Int(boundingBox.x), y: y - Int(boundingBox.y + boundingBox.height)),
                     bottomRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y + boundingBox.height)),
-                    width: boundingBox.width,
-                    height: boundingBox.height
+                    width: CGFloat(boundingBox.width),
+                    height: CGFloat(boundingBox.height)
                 )
                 if boundingBox.width >= 10 && boundingBox.height >= 10 {
                     codes.append(code)
@@ -425,8 +425,8 @@ struct HomeLaserRangeView: View {
                     topRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y)),
                     bottomLeft: CGPoint(x: Int(boundingBox.x), y: y - Int(boundingBox.y + boundingBox.height)),
                     bottomRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y + boundingBox.height)),
-                    width: boundingBox.width,
-                    height: boundingBox.height
+                    width: CGFloat(boundingBox.width),
+                    height: CGFloat(boundingBox.height)
                 )
                 if boundingBox.width >= 10 && boundingBox.height >= 10 {
                     codes.append(code)
@@ -467,8 +467,8 @@ struct HomeLaserRangeView: View {
                         topRight: feature.topRight,
                         bottomLeft: feature.bottomLeft,
                         bottomRight: feature.bottomRight,
-                        width: Int32(feature.topRight.x - feature.topLeft.x),
-                        height: Int32(feature.topLeft.y - feature.bottomLeft.y)
+                        width: CGFloat(feature.topRight.x - feature.topLeft.x),
+                        height: CGFloat(feature.topLeft.y - feature.bottomLeft.y)
                     )
                     codes.append(code)
                     
