@@ -1,3 +1,11 @@
+//
+//  RestClient.swift
+//  qrcode2
+//
+//  Created by Emil V Rainero on 12/28/24.
+//
+
+
 import Foundation
 
 class RestClient {
@@ -72,3 +80,32 @@ class RestClient {
         makeRequest(endpoint: endpoint, method: "DELETE", headers: headers, completion: completion)
     }
 }
+
+//let apiClient = RestClient(baseURL: "https://jsonplaceholder.typicode.com")
+//
+//// Example: GET Request
+//apiClient.get(endpoint: "/posts/1") { result in
+//    switch result {
+//    case .success(let data):
+//        if let jsonString = String(data: data, encoding: .utf8) {
+//            print("Response: \(jsonString)")
+//        } 
+//    case .failure(let error):
+//        print("Error: \(error)")
+//    }
+//}
+//
+//// Example: POST Request
+//let newPost = ["title": "foo", "body": "bar", "userId": 1]
+//if let jsonData = try? JSONSerialization.data(withJSONObject: newPost, options: []) {
+//    apiClient.post(endpoint: "/posts", headers: ["Content-Type": "application/json"], body: jsonData) { result in
+//        switch result {
+//        case .success(let data):
+//            if let jsonString = String(data: data, encoding: .utf8) {
+//                print("Response: \(jsonString)")
+//            }
+//        case .failure(let error):
+//            print("Error: \(error)")
+//        }
+//    }
+//}
