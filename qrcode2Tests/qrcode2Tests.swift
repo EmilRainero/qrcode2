@@ -12,21 +12,21 @@ import UIKit
 
 
 struct qrcode2Tests {
-
-//    @Test func example() async throws {
-//        // Example asynchronous test
-//        let result = await performAsyncOperation()
-//        
-//        // Expect the result to match the expected value (example: "success")
-//        #expect(result == "success")
-//        testFrames()
-//    }
-//    
-//    // Example async function that we are testing
-//    func performAsyncOperation() async -> String {
-//        // Simulating an async operation (e.g., network call)
-//        return "success"
-//    }
+    
+    //    @Test func example() async throws {
+    //        // Example asynchronous test
+    //        let result = await performAsyncOperation()
+    //
+    //        // Expect the result to match the expected value (example: "success")
+    //        #expect(result == "success")
+    //        testFrames()
+    //    }
+    //
+    //    // Example async function that we are testing
+    //    func performAsyncOperation() async -> String {
+    //        // Simulating an async operation (e.g., network call)
+    //        return "success"
+    //    }
     
     @Test func compareQRCodes() {
         let code1 = DetectedQRCode(
@@ -50,5 +50,5 @@ struct qrcode2Tests {
         
         #expect(code1.QRCodeApproxEqual(qrcode: code2))
     }
-
+    
 }

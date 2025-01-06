@@ -596,4 +596,3 @@ func findQRCodesBoundingRect(codes: [DetectedQRCode]) -> (upperLeft: CGPoint, up
     return (upperLeft: upperLeft!, upperRight: upperRight!, lowerLeft: lowerLeft!, lowerRight: lowerRight!)
 //    return (upperLeft: cornerUpperLeft, upperRight: cornerUpperRight, lowerLeft: cornerLowerLeft, lowerRight: cornerLowerRight)
 }
-
