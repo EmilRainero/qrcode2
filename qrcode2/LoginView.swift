@@ -1,16 +1,5 @@
 import SwiftUI
-import SwiftyBeaver
 
-class LoggerManager {
-    static let log = SwiftyBeaver.self
-
-    static func setup() {
-        // Add a console destination
-        let console = ConsoleDestination()
-        console.minLevel = .info  // Adjust minimum log level
-        log.addDestination(console)
-    }
-}
 
 struct LoginView: View {
     @State private var username: String = ""
@@ -136,11 +125,82 @@ struct LoginView: View {
     
     private func checkAuthenticationStatus() {
 //        KeychainManager.shared.deleteToken(forKey: "authToken")
+        isLoggedIn = false
         if let token = KeychainManager.shared.retrieveToken(forKey: "authToken") {
-            isLoggedIn = true
-            print("retrieved token \(token)")
+            LoggerManager.log.debug("retrieved token \(token)")
+            
+            // strip off "Bearer " from token string
+            let index = token.index(token.startIndex, offsetBy: 7)
+            let jwt = String(token[index...])
+           
+            if isTokenExpired(jwt) {
+                LoggerManager.log.debug("Token has expired.")
+            } else {
+                LoggerManager.log.debug("Token is still valid.")
+                isLoggedIn = true
+            }
         } else {
-            isLoggedIn = false
         }
     }
+    
+}
+
+extension Data {
+    // Decode Base64URL string
+    init?(base64URLEncoded input: String) {
+        var base64 = input
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let paddingLength = 4 - base64.count % 4
+        if paddingLength < 4 {
+            base64.append(contentsOf: repeatElement("=", count: paddingLength))
+        }
+        self.init(base64Encoded: base64)
+    }
+}
+
+func parseJWT(_ jwt: String) -> [String: Any]? {
+    let parts = jwt.components(separatedBy: ".")
+    guard parts.count == 3 else {
+        print("Invalid JWT token")
+        return nil
+    }
+    
+    let payloadPart = parts[1]
+    guard let payloadData = Data(base64URLEncoded: payloadPart),
+          let jsonObject = try? JSONSerialization.jsonObject(with: payloadData),
+          let payload = jsonObject as? [String: Any] else {
+        print("Failed to decode payload")
+        return nil
+    }
+    
+    return payload
+}
+
+func isTokenExpired(_ token: String) -> Bool {
+    guard let payload = parseJWT(token) else {
+        return true
+    }
+    
+    // Check if 'exp' (expiration) claim exists and is a valid timestamp
+    if let expTimestamp = payload["exp"] as? TimeInterval {
+        // Compare with current date (in seconds)
+        let currentTimestamp = Date().timeIntervalSince1970
+        
+        LoggerManager.log.debug("Token expiration date: \(date(from: expTimestamp))")
+        LoggerManager.log.debug("Current date: \(date(from: currentTimestamp))")
+        return currentTimestamp > expTimestamp
+    } else {
+        print("Expiration claim 'exp' not found")
+        return true
+    }
+}
+
+// create a function that takes a unix epoch timestamp and returns a human-readable date and time
+func date(from timestamp: TimeInterval) -> String {
+    let date = Date(timeIntervalSince1970: timestamp)
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .medium
+    return formatter.string(from: date)
 }
