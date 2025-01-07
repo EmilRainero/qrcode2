@@ -5,28 +5,67 @@
 //  Created by Emil V Rainero on 12/28/24.
 //
 
-
 import Foundation
+import Network
 
-class RestClient {
+public class RestClient {
     // Base URL for the REST API
     private let baseURL: URL
 
     // Shared URLSession
     private let session: URLSession
 
-    init(baseURL: String) {
+    // Network monitor for checking the interface type
+    private let monitor = NWPathMonitor()
+
+    // Network preference (default: Wi-Fi only)
+    public enum NetworkPreference {
+        case wifiOnly
+        case cellularOnly
+        case any
+    }
+    private let networkPreference: NetworkPreference
+
+    // Variable to store the current path status
+    private var currentPath: NWPath?
+
+    public init(baseURL: String, networkPreference: NetworkPreference = .wifiOnly) {
         guard let url = URL(string: baseURL) else {
             fatalError("Invalid base URL")
         }
         self.baseURL = url
         self.session = URLSession.shared
+        self.networkPreference = networkPreference
+
+        // Start monitoring the network path
+        monitor.pathUpdateHandler = { [weak self] path in
+            self?.currentPath = path
+            print("Current Path Updated: \(path)")
+        }
+
+        monitor.start(queue: DispatchQueue.global(qos: .background))
     }
 
     // MARK: - Generic REST Call
-    private func makeRequest(endpoint: String, method: String, headers: [String: String]? = nil, body: Data? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
+    private func makeRequest(
+        endpoint: String,
+        method: String,
+        headers: [String: String]? = nil,
+        body: Data? = nil,
+        completion: @escaping (Result<Data, Error>) -> Void
+    ) {
+        // Wait for the network path to be updated before proceeding
+        waitForNetworkPathUpdate()
+
         guard let url = URL(string: endpoint, relativeTo: baseURL) else {
             completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
+            return
+        }
+
+        // Validate network preference before making the request
+        guard isValidNetworkConnection() else {
+            let error = NSError(domain: "Network Preference", code: -2, userInfo: [NSLocalizedDescriptionKey: "Request blocked due to network preference settings"])
+            completion(.failure(error))
             return
         }
 
@@ -58,54 +97,64 @@ class RestClient {
         }.resume()
     }
 
+    // MARK: - Network Validation
+    private func isValidNetworkConnection() -> Bool {
+        // Ensure we have a valid currentPath
+        guard let path = currentPath else {
+            print("Network path is unavailable or hasn't been detected yet.")
+            return false
+        }
+
+        print("Current Path: \(path)")
+        print("Network Preference: \(networkPreference)")
+        
+        switch networkPreference {
+        case .wifiOnly:
+            return path.usesInterfaceType(.wifi)
+        case .cellularOnly:
+            return path.usesInterfaceType(.cellular)
+        case .any:
+            return path.status == .satisfied
+        }
+    }
+
+    // MARK: - Wait for Network Path Update
+    private func waitForNetworkPathUpdate() {
+        let semaphore = DispatchSemaphore(value: 0)
+
+        // Set pathUpdateHandler to signal semaphore when path is updated
+        monitor.pathUpdateHandler = { [weak self] path in
+            self?.currentPath = path
+            print("Current Path Updated: \(path)")
+            semaphore.signal()  // Signal the semaphore when the path is updated
+        }
+
+        // Wait for the network path to be updated
+        let timeout = DispatchTime.now() + .seconds(5) // Wait up to 5 seconds
+        if semaphore.wait(timeout: timeout) == .timedOut {
+            print("Timed out waiting for network path update.")
+        }
+    }
+
     // MARK: - Public Methods
 
     /// GET request
-    func get(endpoint: String, headers: [String: String]? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
+    public func get(endpoint: String, headers: [String: String]? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
         makeRequest(endpoint: endpoint, method: "GET", headers: headers, completion: completion)
     }
 
     /// POST request
-    func post(endpoint: String, headers: [String: String]? = nil, body: Data? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
+    public func post(endpoint: String, headers: [String: String]? = nil, body: Data? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
         makeRequest(endpoint: endpoint, method: "POST", headers: headers, body: body, completion: completion)
     }
 
     /// PUT request
-    func put(endpoint: String, headers: [String: String]? = nil, body: Data? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
+    public func put(endpoint: String, headers: [String: String]? = nil, body: Data? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
         makeRequest(endpoint: endpoint, method: "PUT", headers: headers, body: body, completion: completion)
     }
 
     /// DELETE request
-    func delete(endpoint: String, headers: [String: String]? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
+    public func delete(endpoint: String, headers: [String: String]? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
         makeRequest(endpoint: endpoint, method: "DELETE", headers: headers, completion: completion)
     }
 }
-
-//let apiClient = RestClient(baseURL: "https://jsonplaceholder.typicode.com")
-//
-//// Example: GET Request
-//apiClient.get(endpoint: "/posts/1") { result in
-//    switch result {
-//    case .success(let data):
-//        if let jsonString = String(data: data, encoding: .utf8) {
-//            print("Response: \(jsonString)")
-//        } 
-//    case .failure(let error):
-//        print("Error: \(error)")
-//    }
-//}
-//
-//// Example: POST Request
-//let newPost = ["title": "foo", "body": "bar", "userId": 1]
-//if let jsonData = try? JSONSerialization.data(withJSONObject: newPost, options: []) {
-//    apiClient.post(endpoint: "/posts", headers: ["Content-Type": "application/json"], body: jsonData) { result in
-//        switch result {
-//        case .success(let data):
-//            if let jsonString = String(data: data, encoding: .utf8) {
-//                print("Response: \(jsonString)")
-//            }
-//        case .failure(let error):
-//            print("Error: \(error)")
-//        }
-//    }
-//}
