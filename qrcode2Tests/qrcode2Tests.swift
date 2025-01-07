@@ -54,7 +54,7 @@ struct qrcode2Tests {
 
 class RestClientTests: XCTestCase {
     func testGetRequest() {
-        let apiClient = RestClient(baseURL: "http://192.168.5.3:5001", networkPreference: .wifiOnly)
+        let apiClient = RestClient(baseURL: "http://192.168.5.3:5001", networkPreference: .wifiWithFallback)
         
         let expectation = self.expectation(description: "Login request completes")
 
@@ -75,7 +75,7 @@ class RestClientTests: XCTestCase {
     }
     
     func testLogin() {
-        let client = RestClient(baseURL: "http://192.168.5.3:5001", networkPreference: .wifiOnly)
+        let client = RestClient(baseURL: "http://192.168.5.3:5001", networkPreference: .wifiWithFallback)
 
         // Define the login credentials
         let credentials = [
