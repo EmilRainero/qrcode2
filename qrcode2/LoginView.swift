@@ -1,4 +1,16 @@
 import SwiftUI
+import SwiftyBeaver
+
+class LoggerManager {
+    static let log = SwiftyBeaver.self
+
+    static func setup() {
+        // Add a console destination
+        let console = ConsoleDestination()
+        console.minLevel = .info  // Adjust minimum log level
+        log.addDestination(console)
+    }
+}
 
 struct LoginView: View {
     @State private var username: String = ""
@@ -89,22 +101,25 @@ struct LoginView: View {
     }
 
     private func authenticateUser() {
-        // Placeholder authentication logic
         if username.isEmpty || password.isEmpty {
             loginError = "Please enter both username and password."
-        } else if username == "test" && password == "password" {
-            loginError = nil
-            isLoggedIn = true
-            print("Login successful")
-            var token = "\(username):\(password)"
-            if KeychainManager.shared.save(token: token, forKey: "authToken") {
-                print("saved authToken \(token)")
-            } else {
-                print("faled to save authToken")
-            }
-            
         } else {
-            loginError = "Invalid username or password."
+            let server = Server(baseURL: "http://192.168.5.3:5001")
+            if server.getLoginToken(username: username, password: password) {
+                loginError = nil
+                isLoggedIn = true
+                LoggerManager.log.info("Login successful")
+                
+                var token = server.token!
+                if KeychainManager.shared.save(token: token, forKey: "authToken") {
+                    LoggerManager.log.debug("saved authToken \(token)")
+                } else {
+                    print("faled to save authToken")
+                }
+            } else {
+//                print("Login failed - \(server.errorMessage)")
+                loginError = "Invalid username or password."
+            }
         }
     }
     
@@ -113,17 +128,17 @@ struct LoginView: View {
         password = ""
         isLoggedIn = false
         if KeychainManager.shared.deleteToken(forKey: "authToken") {
-            print("deleted authToken")
+//            print("deleted authToken")
         } else {
             print("faled to delete authToken")
         }
     }
     
     private func checkAuthenticationStatus() {
+//        KeychainManager.shared.deleteToken(forKey: "authToken")
         if let token = KeychainManager.shared.retrieveToken(forKey: "authToken") {
             isLoggedIn = true
             print("retrieved token \(token)")
-            print("go to mainview")
         } else {
             isLoggedIn = false
         }

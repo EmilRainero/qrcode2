@@ -95,12 +95,21 @@ struct MainView: View {
             }
         }
         .onAppear {
+//            test()
             deleteAllTemporaryFiles()
             // Navigate to CameraView immediately when the view appears - DEBUGGING
 //            navigationPath.append("start")
         }
     }
     
+//    func test() {
+//        let server = Server(baseURL: "http://192.168.5.3:5001")
+//        if server.getLoginToken(username: "a", password: "b") {
+//            print("Login successful")
+//        } else {
+//            print("Login failed - \(server.errorMessage)")
+//        }
+//    }
 }
 
 func displayNumber(on view: UIView, number: Int) {
