@@ -173,7 +173,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     public var rectifiedImage: UIImage? = .none
     private var corners: [DetectedQRCode] = []
     private var lastFrame: UIImage? = .none
-
+    private var session: Session? = .none
     
     init(appStateMachine: AppStateMachine) {
         self.appStateMachine = appStateMachine
@@ -747,6 +747,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
         if appStateMachine.currentState == .startRunningSession && frameCount == delayStartTime {
             appStateMachine.handle(event: .running)
+            self.session = Session(starttime: Date())
             frameCount = 0
         }
         if appStateMachine.currentState == .runningSession && frameCount == sessionTime {
@@ -1136,3 +1137,5 @@ class FeatureView: UIView {
         }
     }
 }
+
+
