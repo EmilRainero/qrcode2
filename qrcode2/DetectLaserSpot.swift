@@ -23,7 +23,7 @@ func detectLaserSpot(in image: UIImage) -> CGRect? {
     print("thresholded")
     print(thresholdImage)
     
-    var dilatedImage = dilateImage(thresholdImage)!
+    let dilatedImage = dilateImage(thresholdImage)!
     
     print("dialated")
 

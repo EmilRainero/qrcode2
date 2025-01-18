@@ -171,7 +171,7 @@ struct HomeLaserRangeView: View {
             return
         }
         
-        var spot = detectLaserSpot(in: uiImage)
+        let spot = detectLaserSpot(in: uiImage)
         print(spot)
     }
 

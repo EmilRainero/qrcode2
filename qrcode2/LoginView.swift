@@ -99,7 +99,7 @@ struct LoginView: View {
                 isLoggedIn = true
                 LoggerManager.log.info("Login successful")
                 
-                var token = server.token!
+                let token = server.token!
                 if KeychainManager.shared.save(token: token, forKey: "authToken") {
                     LoggerManager.log.debug("saved authToken \(token)")
                 } else {

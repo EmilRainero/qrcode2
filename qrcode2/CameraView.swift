@@ -253,7 +253,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         // Save the image
         if let dilatedImage = UIImage(mat: colorDilatedMat) {
             let fileURL3 = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-            saveUIImage(dilatedImage, to: fileURL3)
+            _ = saveUIImage(dilatedImage, to: fileURL3)
         } else {
             print("Failed to convert Mat to UIImage.")
         }
@@ -502,7 +502,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             let y = Int32(stat.get(row: 0, col: 1)[0])
             let width = Int32(stat.get(row: 0, col: 2)[0])
             let height = Int32(stat.get(row: 0, col: 3)[0])
-            let area = Int32(stat.get(row: 0, col: 4)[0])
+//            let area = Int32(stat.get(row: 0, col: 4)[0])
 
 //            if area > 50 { // Filter out small noise
 ////                print("Component \(i): x=\(x), y=\(y), width=\(width), height=\(height), area=\(area)")
@@ -683,7 +683,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                                 
                                 if rectifiedImage != nil {
                                     let fileURL2 = FileManager.default.temporaryDirectory.appendingPathComponent("4qrcodes_rectified.jpg")
-                                    saveUIImage(rectifiedImage!, to: fileURL2)
+                                    _ = saveUIImage(rectifiedImage!, to: fileURL2)
                                     self.rectifiedImage = rectifiedImage
                                 } else {
                                     print("nil rectifiedImage")
@@ -697,7 +697,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                                     width: CGFloat(result.upperRight!.x - result.upperLeft!.x),
                                     height: CGFloat(result.upperLeft!.y - result.lowerLeft!.y)
                                 )
-                                codes = []
+                                codes = [code]
                                 self.detectedQRCodes = codes
                             }
                         }
