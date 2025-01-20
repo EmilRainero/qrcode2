@@ -8,9 +8,10 @@
 import SwiftUI
 
 
-class Session {
+class Session: Codable {
     var id: String
     var starttime: Date
+    var finishtime: Date? = nil
     var shots: [Shot]
     
     init(starttime: Date) {
@@ -26,4 +27,30 @@ class Session {
     func description() -> String {
         return "Session - Starttime: \(self.starttime)  # Shots: \(self.shots.count)"
     }
+    
+    func finish(finishtime: Date) {
+        self.finishtime = finishtime
+    }
+    
+    func toJson() -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        encoder.dateEncodingStrategy = .custom { (date, encoder) in
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            let dateString = formatter.string(from: date)
+            var container = encoder.singleValueContainer()
+            try container.encode(dateString)
+        }
+
+        do {
+            let data = try encoder.encode(self)
+            return String(data: data, encoding: .utf8) ?? ""
+        } catch {
+            LoggerManager.log.error("Error encoding to JSON: \(error)")
+            return ""
+        }
+    }
+    
 }

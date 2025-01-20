@@ -578,20 +578,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         if outputImage != nil {
             if appStateMachine.currentState == .runningSession {
                 let result = rectifyImageForMultipleCodes(image: tempImage!, using: self.corners)
-                
-//                let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-\(frameCount).jpg")
-//                saveUIImage(result.image!, to: fileURL)
-                
+                                
                 let detect = detectLaser(image: result.image!, frameCount: frameCount)
                 if detect.found {
                     let target = processTarget(image: self.lastFrame!)
-                    
-//                    print(frameCount, "LASER")
-//                    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("laser-original-\(frameCount).jpg")
-//                    saveUIImage(result.image!, to: fileURL)
-                    
                     let code = detect.codes[0]
-                    
                     
                     var skip = false
                     if self.laserSpots == nil {
@@ -600,6 +591,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         if !self.laserSpots!.isEmpty &&
                             self.laserSpots![self.laserSpots!.count-1].frame == frameCount - 1 {
                             self.laserSpots![self.laserSpots!.count-1].frame = frameCount
+                            let shot = self.session!.shots.last!
+                            shot.addAdditionalShots(time: Date(), position: CGPoint(x: code.topLeft.x, y: code.topLeft.y))
+                            LoggerManager.log.info("add addional shots")
+                            LoggerManager.log.info(self.session!.toJson())
+
                             skip = true
                         } else {
                             self.laserSpots!.append(code)
@@ -610,7 +606,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         let y = (code.topLeft.y + code.bottomLeft.y) / 2
                         let score = target.getScore(x: x, y: y, radius:2.5)
                         
-                        print("LASER Frame: \(frameCount) SCORE \(score) ")
+                        let shot = Shot(time: Date(), position: CGPoint(x: x, y: y))
+                        self.session!.addShot(shot: shot)
+//                        print("LASER Frame: \(frameCount) SCORE \(score) ")
+                        LoggerManager.log.info("LASER Frame: \(frameCount) SCORE \(score) ")
+                        LoggerManager.log.info(self.session!.toJson())
 
 //                        let drawImage = self.drawOnImage(image: self.lastFrame!, codes: self.laserSpots, color: UIColor.red)
                         let drawImage = self.drawOnImage(image: result.image!, codes: self.laserSpots, color: UIColor.red)
@@ -752,6 +752,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
         if appStateMachine.currentState == .runningSession && frameCount == sessionTime {
 //            self.detectedQRCodes = []
+            self.session!.finish(finishtime: Date())
+            LoggerManager.log.info("FINISHED")
+
+            LoggerManager.log.info(self.session!.toJson())
+
             DispatchQueue.main.async {
                 self.appStateMachine.handle(event: .endRunSession)
                 self.processedImage = self.processedImage

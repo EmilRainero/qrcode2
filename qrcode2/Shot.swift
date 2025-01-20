@@ -8,14 +8,43 @@
 import SwiftUI
 import Foundation
 
-class Shot {
-    var time: Double
+struct TimePosition: Codable {
+    var time: Date
     var position: CGPoint
-    var allShots: [Shot] = []
 
-    init(time: Double, position: CGPoint) {
+    init(time: Date, position: CGPoint) {
         self.time = time
         self.position = position
+    }
+
+    // Custom JSON encoding with microsecond precision
+    func toJson() throws -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        encoder.dateEncodingStrategy = .custom { (date, encoder) in
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            let dateString = formatter.string(from: date)
+            var container = encoder.singleValueContainer()
+            try container.encode(dateString)
+        }
+        let data = try encoder.encode(self)
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+}
+
+class Shot: Codable {
+    var time: Date
+    var position: CGPoint
+    var allShots: [TimePosition] = []
+    var angle: Double?
+    var distance: Double?
+
+    init(time: Date, position: CGPoint) {
+        self.time = time
+        self.position = position
+        self.allShots = []
         self.addAdditionalShots(time: time, position: position)
     }
 
@@ -23,14 +52,20 @@ class Shot {
         return "Shot - \(time)  position: \(position)"
     }
     
-    func addAdditionalShots(time: Double, position: CGPoint) {
-        let shot = Shot(time: time, position: position)
-        self.allShots.append(shot)
+    func addAdditionalShots(time: Date, position: CGPoint) {
+        let tp = TimePosition(time: time, position: position)
+        self.allShots.append(tp)
+        let result = self.driftAngleAndDistance()
+        if let angle = result.0, let distance = result.1 {
+            self.angle = angle
+            self.distance = distance
+//            LoggerManager.log.info("addAddtionalShots: angle: \(angle)  distance: \(distance)")
+        }
     }
     
-    func driftAngle() -> Double? {
+    func driftAngleAndDistance() -> (Double?, Double?) {
         guard self.allShots.count >= 2 else {
-            return nil // Not enough points to calculate drift angle
+            return (nil, nil) // Not enough points to calculate
         }
         
         let firstPoint = self.allShots.first!.position
@@ -46,7 +81,24 @@ class Shot {
         // Convert to degrees
         let angleDegrees = angleRadians * 180 / .pi
         
-        return angleDegrees
+        // Calculate distance using Pythagorean theorem
+        let distance = sqrt(pow(deltaX, 2) + pow(deltaY, 2))
+        
+        return (angleDegrees, distance)
+    }
+    
+    func toJson() throws -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        encoder.dateEncodingStrategy = .custom { (date, encoder) in
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            let dateString = formatter.string(from: date)
+            var container = encoder.singleValueContainer()
+            try container.encode(dateString)
+        }
+        let data = try encoder.encode(self)
+        return String(data: data, encoding: .utf8) ?? ""
     }
 }
-
