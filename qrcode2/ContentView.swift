@@ -11,48 +11,6 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import opencv2
 
-// Struct to store QR code data and corners
-public struct DetectedQRCode {
-    let message: String
-    let topLeft: CGPoint
-    let topRight: CGPoint
-    let bottomLeft: CGPoint
-    let bottomRight: CGPoint
-    let width: CGFloat
-    let height: CGFloat
-    var frame: Int32?
-    
-    public init(message: String, topLeft: CGPoint, topRight: CGPoint, bottomLeft: CGPoint, bottomRight: CGPoint, width: CGFloat, height: CGFloat) {
-        self.message = message
-        self.topLeft = topLeft
-        self.topRight = topRight
-        self.bottomLeft = bottomLeft
-        self.bottomRight = bottomRight
-        self.width = width
-        self.height = height
-    }
-    
-    public func QRCodeApproxEqual(qrcode: DetectedQRCode) -> Bool {
-        return CGPointApproxEqual(pt1: self.bottomLeft, pt2: qrcode.bottomLeft) &&
-            CGPointApproxEqual(pt1: self.bottomRight, pt2: qrcode.bottomRight) &&
-            CGPointApproxEqual(pt1: self.topLeft, pt2: qrcode.topLeft) &&
-            CGPointApproxEqual(pt1: self.topRight, pt2: qrcode.topRight)
-    }
-    
-    func CGPointApproxEqual(pt1: CGPoint, pt2: CGPoint) -> Bool {
-        return abs(pt1.x - pt2.x) < 3 && abs(pt1.y - pt2.y) < 3
-    }
-}
-
-func QRCodeApproxEqual(q1: DetectedQRCode, q2: DetectedQRCode) -> Bool {
-    return false
-}
-
-extension CGPoint {
-    static func + (left: CGPoint, right: CGPoint) -> CGPoint {
-        return CGPoint(x: left.x + right.x, y: left.y + right.y)
-    }
-}
 
 struct ContentView: View {
     @Binding var navigationPath: NavigationPath
@@ -66,8 +24,6 @@ struct ContentView: View {
 
     @State private var originalImageSize: CGSize = .zero
     @State private var imageName: String = "laser"
-//    @State private var imageName: String = "corners4"
-//    @State private var imageName: String = "image4corners"
 
     var body: some View {
         
@@ -469,7 +425,6 @@ struct ContentView: View {
         guard let cgImage = ciContext.createCGImage(outputImage, from: outputImage.extent) else { return nil }
 
         return UIImage(cgImage: cgImage)
-
     }
     
     // Function to apply perspective correction using given input and target points
@@ -490,12 +445,6 @@ struct ContentView: View {
         guard let ciImage = CIImage(image: UIImage(named: self.imageName)!) else { return }
         filter.setValue(ciImage, forKey: kCIInputImageKey)
 
-        
-//        self.rectifiedImage = applyPerspectiveCorrectionCorners(to: UIImage(named: self.imageName)!,
-//                                                topLeft: self.scalePoint(CGPoint(x: 75.81271362304688, y: 1920-1645.3375854492188)),
-//                                                topRight: self.scalePoint(CGPoint(x: 961.8091430664062, y: 1920-1644.1079406738281)),
-//                                                bottomLeft: self.scalePoint(CGPoint(x: 227.71217346191406, y: 1920-345.548583984375)),
-//                                                bottomRight: self.scalePoint(CGPoint(x: 1029.3531494140625, y: 1920-536.287841796875)))
         let topLeft = (CGPoint(x: 0.0, y: ciImage.extent.height))
         let topRight = (CGPoint(x: ciImage.extent.width, y: ciImage.extent.height))
         let bottomLeft = (CGPoint(x: 0.0, y: 0.0))
@@ -517,17 +466,6 @@ struct ContentView: View {
         } else {
             print("Perspective correction filter failed.")
         }
-        
-        
-        // Apply the perspective correction filter
-//        if let outputImage = filter.outputImage {
-//            let context = CIContext()
-//            if let cgImage = context.createCGImage(outputImage, from: outputImage.extent) {
-//                let rectifiedUIImage = UIImage(cgImage: cgImage)
-//                self.rectifiedImage = rectifiedUIImage
-//                print("created rectified image")
-//            }
-//        }
     }
 }
 
@@ -594,5 +532,4 @@ func findQRCodesBoundingRect(codes: [DetectedQRCode]) -> (upperLeft: CGPoint, up
     }
     
     return (upperLeft: upperLeft!, upperRight: upperRight!, lowerLeft: lowerLeft!, lowerRight: lowerRight!)
-//    return (upperLeft: cornerUpperLeft, upperRight: cornerUpperRight, lowerLeft: cornerLowerLeft, lowerRight: cornerLowerRight)
 }
