@@ -557,12 +557,9 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
         frameCount += 1
-//        if frameCount % 30 == 0 {
-//            print(frameCount)
-//        }
         
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        var tempImage = convertCIImageToUIImage(ciImage)
+        let tempImage = convertCIImageToUIImage(ciImage)
         
         if self.processedImage == nil {
             DispatchQueue.main.async {
@@ -604,8 +601,9 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     if !skip {
                         let x = (code.topLeft.x + code.topRight.x) / 2
                         let y = (code.topLeft.y + code.bottomLeft.y) / 2
-                        let score = target.getScore(x: x, y: y, radius:2.5)
-                        
+//                        let score = target.getScore(x: x, y: y, radius:2.5)
+                        let (score, distance, angle) = target.getScoreDistanceAndAngle(x: x, y: y, radius:2.5)
+
                         let shot = Shot(time: Date(), position: CGPoint(x: x, y: y))
                         self.session!.addShot(shot: shot)
 //                        print("LASER Frame: \(frameCount) SCORE \(score) ")
@@ -659,26 +657,24 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         let numberSequentialKeys: Int32 = 5
                         if qrCodeMap.count >= numberSequentialKeys {
                             let lastNkeys = qrCodeMap.keys.sorted().suffix(Int(numberSequentialKeys))
-//                            print(lastNkeys)
                             if let firstKey = lastNkeys.first, let lastKey = lastNkeys.last, lastKey - firstKey < numberSequentialKeys + 10 {
-//                                 Iterate through the last 10 sorted keys and process the dictionary values
-//                                for key in lastNkeys {
-//                                    var detectedQRCodes = qrCodeMap[key]
-//                                    print("\(key)  \(detectedQRCodes!.count)")
-//                                }
                                 appStateMachine.handle(event: .startRunSession)
                                 frameCount = 0
                                 
                                 let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("4qrcodes.jpg")
                                 saveImage(ciImage, to: fileURL)
-//                                let drawImage = self.drawOnImage(image: tempImage!, codes: self.detectedQRCodes, color: UIColor.green)
-//                                let fileURL2 = FileManager.default.temporaryDirectory.appendingPathComponent("4qrcode-draw.jpg")
-//                                self.saveUIImage(drawImage!, to: fileURL2)
                                 
                                 let result = rectifyImageForMultipleCodes(image: tempImage!, using: codes)
                                 
                                 self.corners = codes  // remember corners
-                                
+                                let pixelsPerInch = codes[0].width
+                                let qrCodesWidthUpper = result.upperRight!.x - result.upperLeft!.x
+                                let qrCodesWidthLower = result.lowerRight!.x - result.lowerLeft!.x
+                                let qrCodesHeightLeft = result.upperLeft!.y - result.lowerLeft!.y
+                                let qrCodesHeightRight = result.upperRight!.y - result.lowerRight!.y
+                                print("Width: \(codes[0].width)  Height: \(codes[0].height)")
+                                print("qrCodesWidthUpper: \(qrCodesWidthUpper)  qrCodesWidthLower: \(qrCodesWidthLower)")
+                                print("qrCodesHeightLeft: \(qrCodesHeightLeft)  qrCodesHeightRight: \(qrCodesHeightRight)")
                                 let rectifiedImage = result.image
                                 
                                 if rectifiedImage != nil {
@@ -709,11 +705,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             var newImage = self.processedImage
             if appStateMachine.currentState == .calibrating && frameCount % 2 == 0 {
                 newImage = self.drawOnImage(image: tempImage!, codes: self.detectedQRCodes, color: UIColor.green)
-//                let endTime = Date()
-//                let elapsedTime = endTime.timeIntervalSince(startTime)
-//                print("Drawing time: \(elapsedTime) seconds")
             }
-//            let newImage = self.drawOnImage(image: tempImage!, codes: self.detectedQRCodes, color: UIColor.green)
             
             if appStateMachine.currentState != .runningSession && appStateMachine.currentState != .sessionEnded {
                 DispatchQueue.main.async {
@@ -727,11 +719,6 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
         
         if appStateMachine.currentState == .calibrating && frameCount == calibrationTime {
-//            for key in qrCodeMap.keys.sorted() {
-//                if let detectedQRCodes = qrCodeMap[key] {
-//                    print("Frame: \(key)  Count: \(detectedQRCodes.count)")
-//                }
-//            }
             appStateMachine.handle(event: .calibrationFailed)
             self.detectedQRCodes = []
 

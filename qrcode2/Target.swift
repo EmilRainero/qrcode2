@@ -67,13 +67,31 @@ class Target {
         let circle = Circle(x: x, y: y, radius: radius)
         for i in 0..<self.rings.count {
             if isCircleOverlappingEllipse(circle: circle, ellipse: self.rings[i].ellipse) {
-//                print("getScore \(i) \(self.rings[i].score)")
-//                print("circle: \(circle.toJson()!) ellipse: \(self.rings[i].ellipse.toJson()!)")
                 return Int32(self.rings[i].score)
             }
         }
-//        print("getScore failed")
         return 0
+    }
+    
+    func getScoreDistanceAndAngle(x: Double, y: Double, radius: Double) -> (score: Int32, distance: Double, angle: Double) {
+        let circle = Circle(x: x, y: y, radius: radius)
+        for i in 0..<self.rings.count {
+            let ellipse = self.rings[i].ellipse
+            if isCircleOverlappingEllipse(circle: circle, ellipse: ellipse) {
+                // Compute the distance
+                let dx = x - ellipse.centerx
+                let dy = y - ellipse.centery
+                // compute the distance
+                let distance = sqrt(dx * dx + dy * dy)
+                
+                // Compute the angle
+                let angle = atan2(dy, dx) // Angle in radians
+                let angleInDegrees = angle * (180.0 / .pi)
+                
+                return (score: Int32(self.rings[i].score), distance: distance, angle: angleInDegrees)
+            }
+        }
+        return (score: 0, distance: -1.0, angle: 0.0) // Return 0.0 as angle if no overlap is found
     }
 }
 
