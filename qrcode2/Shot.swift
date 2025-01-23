@@ -8,15 +8,17 @@
 import SwiftUI
 import Foundation
 
-struct TimePosition: Codable {
+struct TimeVector: Codable {
     var time: Date
-    var angle: Double
-    var distance: Double
+    var position: Vector
+//    var angle: Double
+//    var distance: Double
 
     init(time: Date, angle: Double, distance: Double) {
         self.time = time
-        self.angle = angle
-        self.distance = distance
+//        self.angle = angle
+//        self.distance = distance
+        self.position = Vector(angle: angle, distance: distance)
     }
 
     // Custom JSON encoding with microsecond precision
@@ -25,7 +27,7 @@ struct TimePosition: Codable {
         encoder.outputFormatting = .prettyPrinted
         encoder.dateEncodingStrategy = .custom { (date, encoder) in
             let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+            formatter.dateFormat = TIME_FORMAT
             formatter.locale = Locale(identifier: "en_US_POSIX")
             let dateString = formatter.string(from: date)
             var container = encoder.singleValueContainer()
@@ -38,65 +40,37 @@ struct TimePosition: Codable {
 
 class Shot: Codable {
     var time: Date
-    var allShots: [TimePosition] = []
-    var angle: Double
-    var distance: Double
+    var allShots: [TimeVector] = []
+//    var angle: Double
+//    var distance: Double
+    var position: Vector
     var score: Int32
 
     init(time: Date, angle: Double, distance: Double, score: Int32) {
         self.time = time
         self.allShots = []
-        self.angle = angle
-        self.distance = distance
+        self.position = Vector(angle: angle, distance: distance)
+//        self.angle = angle
+//        self.distance = distance
         self.score = score
         self.addAdditionalShots(time: time, angle: angle, distance: distance)
     }
 
     func description() -> String {
-        return "Shot - \(self.time)  angle: \(self.angle)  distance: \(self.distance)"
+        return "Shot - \(self.time)  angle: \(self.position.angle)  distance: \(self.position.distance)"
     }
     
     func addAdditionalShots(time: Date, angle: Double, distance: Double) {
-        let tp = TimePosition(time: time, angle: angle, distance: distance)
-        self.allShots.append(tp)
-//        let result = self.driftAngleAndDistance()
-//        if let angle = result.0, let distance = result.1 {
-//            self.angle = angle
-//            self.distance = distance
-////            LoggerManager.log.info("addAddtionalShots: angle: \(angle)  distance: \(distance)")
-//        }
+        let tv = TimeVector(time: time, angle: angle, distance: distance)
+        self.allShots.append(tv)
     }
-    
-//    func driftAngleAndDistance() -> (Double?, Double?) {
-//        guard self.allShots.count >= 2 else {
-//            return (nil, nil) // Not enough points to calculate
-//        }
-//        
-//        let firstPoint = self.allShots.first!.position
-//        let lastPoint = self.allShots.last!.position
-//        
-//        // Calculate the differences in x and y
-//        let deltaX = lastPoint.x - firstPoint.x
-//        let deltaY = lastPoint.y - firstPoint.y
-//        
-//        // Calculate the angle in radians
-//        let angleRadians = atan2(deltaY, deltaX)
-//        
-//        // Convert to degrees
-//        let angleDegrees = angleRadians * 180 / .pi
-//        
-//        // Calculate distance using Pythagorean theorem
-//        let distance = sqrt(pow(deltaX, 2) + pow(deltaY, 2))
-//        
-//        return (angleDegrees, distance)
-//    }
     
     func toJson() throws -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
         encoder.dateEncodingStrategy = .custom { (date, encoder) in
             let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+            formatter.dateFormat = TIME_FORMAT
             formatter.locale = Locale(identifier: "en_US_POSIX")
             let dateString = formatter.string(from: date)
             var container = encoder.singleValueContainer()

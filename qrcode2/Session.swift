@@ -40,7 +40,7 @@ class Session: Codable {
         encoder.outputFormatting = .prettyPrinted
         encoder.dateEncodingStrategy = .custom { (date, encoder) in
             let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+            formatter.dateFormat = TIME_FORMAT
             formatter.locale = Locale(identifier: "en_US_POSIX")
             let dateString = formatter.string(from: date)
             var container = encoder.singleValueContainer()
