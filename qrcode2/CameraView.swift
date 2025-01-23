@@ -157,7 +157,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var frameRate: Int32 = 30
     @Published var calibrationTime: Int32 = 15 * 30
     @Published var delayStartTime: Int32 = 5 * 30
-    @Published var sessionTime: Int32 = 30 * 30
+    @Published var sessionTime: Int32 = 60 * 30
     @Published var score: Int32 = 0
     @Published var totalScore: Int32 = 0
     @Published var shotsFired: Int32 = 0
@@ -174,6 +174,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     private var corners: [DetectedQRCode] = []
     private var lastFrame: UIImage? = .none
     private var session: Session? = .none
+    
+    private var shotRadiusPixels: Double = 2.5
     
     init(appStateMachine: AppStateMachine) {
         self.appStateMachine = appStateMachine
@@ -589,9 +591,13 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                             self.laserSpots![self.laserSpots!.count-1].frame == frameCount - 1 {
                             self.laserSpots![self.laserSpots!.count-1].frame = frameCount
                             let shot = self.session!.shots.last!
-                            shot.addAdditionalShots(time: Date(), position: CGPoint(x: code.topLeft.x, y: code.topLeft.y))
+                            
+                            let x = (code.topLeft.x + code.topRight.x) / 2
+                            let y = (code.topLeft.y + code.bottomLeft.y) / 2
+                            let (_, distance, angle) = target.getScoreDistanceAndAngle(x: x, y: y, radius: shotRadiusPixels)
+                            shot.addAdditionalShots(time: Date(), angle: angle, distance: distance)
                             LoggerManager.log.info("add addional shots")
-                            LoggerManager.log.info(self.session!.toJson())
+//                            LoggerManager.log.info(self.session!.toJson())
 
                             skip = true
                         } else {
@@ -602,13 +608,13 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         let x = (code.topLeft.x + code.topRight.x) / 2
                         let y = (code.topLeft.y + code.bottomLeft.y) / 2
 //                        let score = target.getScore(x: x, y: y, radius:2.5)
-                        let (score, distance, angle) = target.getScoreDistanceAndAngle(x: x, y: y, radius:2.5)
+                        let (score, distance, angle) = target.getScoreDistanceAndAngle(x: x, y: y, radius: shotRadiusPixels)
 
-                        let shot = Shot(time: Date(), position: CGPoint(x: x, y: y))
+                        let shot = Shot(time: Date(), angle: angle, distance: distance, score: score)
                         self.session!.addShot(shot: shot)
 //                        print("LASER Frame: \(frameCount) SCORE \(score) ")
                         LoggerManager.log.info("LASER Frame: \(frameCount) SCORE \(score) ")
-                        LoggerManager.log.info(self.session!.toJson())
+//                        LoggerManager.log.info(self.session!.toJson())
 
 //                        let drawImage = self.drawOnImage(image: self.lastFrame!, codes: self.laserSpots, color: UIColor.red)
                         let drawImage = self.drawOnImage(image: result.image!, codes: self.laserSpots, color: UIColor.red)
@@ -667,14 +673,14 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                                 let result = rectifyImageForMultipleCodes(image: tempImage!, using: codes)
                                 
                                 self.corners = codes  // remember corners
-                                let pixelsPerInch = codes[0].width
-                                let qrCodesWidthUpper = result.upperRight!.x - result.upperLeft!.x
-                                let qrCodesWidthLower = result.lowerRight!.x - result.lowerLeft!.x
-                                let qrCodesHeightLeft = result.upperLeft!.y - result.lowerLeft!.y
-                                let qrCodesHeightRight = result.upperRight!.y - result.lowerRight!.y
-                                print("Width: \(codes[0].width)  Height: \(codes[0].height)")
-                                print("qrCodesWidthUpper: \(qrCodesWidthUpper)  qrCodesWidthLower: \(qrCodesWidthLower)")
-                                print("qrCodesHeightLeft: \(qrCodesHeightLeft)  qrCodesHeightRight: \(qrCodesHeightRight)")
+//                                let pixelsPerInch = codes[0].width
+//                                let qrCodesWidthUpper = result.upperRight!.x - result.upperLeft!.x
+//                                let qrCodesWidthLower = result.lowerRight!.x - result.lowerLeft!.x
+//                                let qrCodesHeightLeft = result.upperLeft!.y - result.lowerLeft!.y
+//                                let qrCodesHeightRight = result.upperRight!.y - result.lowerRight!.y
+//                                print("Width: \(codes[0].width)  Height: \(codes[0].height)")
+//                                print("qrCodesWidthUpper: \(qrCodesWidthUpper)  qrCodesWidthLower: \(qrCodesWidthLower)")
+//                                print("qrCodesHeightLeft: \(qrCodesHeightLeft)  qrCodesHeightRight: \(qrCodesHeightRight)")
                                 let rectifiedImage = result.image
                                 
                                 if rectifiedImage != nil {
@@ -742,7 +748,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             self.session!.finish(finishtime: Date())
             LoggerManager.log.info("FINISHED")
 
-            LoggerManager.log.info(self.session!.toJson())
+//            LoggerManager.log.info(self.session!.toJson())
 
             DispatchQueue.main.async {
                 self.appStateMachine.handle(event: .endRunSession)
@@ -1073,42 +1079,42 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
 }
 
-func rectifyImageWithPoints2(image: UIImage, topLeft: CGPoint, topRight: CGPoint, bottomLeft: CGPoint, bottomRight: CGPoint) -> UIImage? {
-    // Convert UIImage to CIImage
-    guard let ciImage = CIImage(image: image) else { return nil }
-    
-    // Calculate width and height based on the provided points
-    let width = max(topRight.x - topLeft.x, bottomRight.x - bottomLeft.x)
-    let height = max(topLeft.y - bottomLeft.y, topRight.y - bottomRight.y)
-    
-    // Calculate the original image's aspect ratio
-    let originalAspectRatio = ciImage.extent.width / ciImage.extent.height
-    
-    // Adjust height to match the aspect ratio of the original image
-    let adjustedHeight = width / originalAspectRatio
-
-    // Adjust corner points to form a rectangle with the correct aspect ratio
-    let correctedTopLeft = CIVector(x: topLeft.x, y: topLeft.y)
-    let correctedTopRight = CIVector(x: topLeft.x + width, y: topLeft.y)
-    let correctedBottomLeft = CIVector(x: topLeft.x, y: topLeft.y - adjustedHeight)
-    let correctedBottomRight = CIVector(x: topLeft.x + width, y: topLeft.y - adjustedHeight)
-
-    // Create the perspective correction filter
-    guard let perspectiveCorrection = CIFilter(name: "CIPerspectiveCorrection") else { return nil }
-    perspectiveCorrection.setValue(ciImage, forKey: kCIInputImageKey)
-    perspectiveCorrection.setValue(correctedTopLeft, forKey: "inputTopLeft")
-    perspectiveCorrection.setValue(correctedTopRight, forKey: "inputTopRight")
-    perspectiveCorrection.setValue(correctedBottomLeft, forKey: "inputBottomLeft")
-    perspectiveCorrection.setValue(correctedBottomRight, forKey: "inputBottomRight")
-
-    // Apply the filter
-    guard let outputImage = perspectiveCorrection.outputImage else { return nil }
-
-    // Convert the CIImage back to UIImage
-    let context = CIContext()
-    guard let cgImage = context.createCGImage(outputImage, from: outputImage.extent) else { return nil }
-    return UIImage(cgImage: cgImage)
-}
+//func rectifyImageWithPoints2(image: UIImage, topLeft: CGPoint, topRight: CGPoint, bottomLeft: CGPoint, bottomRight: CGPoint) -> UIImage? {
+//    // Convert UIImage to CIImage
+//    guard let ciImage = CIImage(image: image) else { return nil }
+//    
+//    // Calculate width and height based on the provided points
+//    let width = max(topRight.x - topLeft.x, bottomRight.x - bottomLeft.x)
+//    let height = max(topLeft.y - bottomLeft.y, topRight.y - bottomRight.y)
+//    
+//    // Calculate the original image's aspect ratio
+//    let originalAspectRatio = ciImage.extent.width / ciImage.extent.height
+//    
+//    // Adjust height to match the aspect ratio of the original image
+//    let adjustedHeight = width / originalAspectRatio
+//
+//    // Adjust corner points to form a rectangle with the correct aspect ratio
+//    let correctedTopLeft = CIVector(x: topLeft.x, y: topLeft.y)
+//    let correctedTopRight = CIVector(x: topLeft.x + width, y: topLeft.y)
+//    let correctedBottomLeft = CIVector(x: topLeft.x, y: topLeft.y - adjustedHeight)
+//    let correctedBottomRight = CIVector(x: topLeft.x + width, y: topLeft.y - adjustedHeight)
+//
+//    // Create the perspective correction filter
+//    guard let perspectiveCorrection = CIFilter(name: "CIPerspectiveCorrection") else { return nil }
+//    perspectiveCorrection.setValue(ciImage, forKey: kCIInputImageKey)
+//    perspectiveCorrection.setValue(correctedTopLeft, forKey: "inputTopLeft")
+//    perspectiveCorrection.setValue(correctedTopRight, forKey: "inputTopRight")
+//    perspectiveCorrection.setValue(correctedBottomLeft, forKey: "inputBottomLeft")
+//    perspectiveCorrection.setValue(correctedBottomRight, forKey: "inputBottomRight")
+//
+//    // Apply the filter
+//    guard let outputImage = perspectiveCorrection.outputImage else { return nil }
+//
+//    // Convert the CIImage back to UIImage
+//    let context = CIContext()
+//    guard let cgImage = context.createCGImage(outputImage, from: outputImage.extent) else { return nil }
+//    return UIImage(cgImage: cgImage)
+//}
 
 class FeatureView: UIView {
     var features: [CIFeature] = []

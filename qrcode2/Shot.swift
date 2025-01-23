@@ -10,11 +10,13 @@ import Foundation
 
 struct TimePosition: Codable {
     var time: Date
-    var position: CGPoint
+    var angle: Double
+    var distance: Double
 
-    init(time: Date, position: CGPoint) {
+    init(time: Date, angle: Double, distance: Double) {
         self.time = time
-        self.position = position
+        self.angle = angle
+        self.distance = distance
     }
 
     // Custom JSON encoding with microsecond precision
@@ -36,56 +38,58 @@ struct TimePosition: Codable {
 
 class Shot: Codable {
     var time: Date
-    var position: CGPoint
     var allShots: [TimePosition] = []
-    var angle: Double?
-    var distance: Double?
+    var angle: Double
+    var distance: Double
+    var score: Int32
 
-    init(time: Date, position: CGPoint) {
+    init(time: Date, angle: Double, distance: Double, score: Int32) {
         self.time = time
-        self.position = position
         self.allShots = []
-        self.addAdditionalShots(time: time, position: position)
+        self.angle = angle
+        self.distance = distance
+        self.score = score
+        self.addAdditionalShots(time: time, angle: angle, distance: distance)
     }
 
     func description() -> String {
-        return "Shot - \(time)  position: \(position)"
+        return "Shot - \(self.time)  angle: \(self.angle)  distance: \(self.distance)"
     }
     
-    func addAdditionalShots(time: Date, position: CGPoint) {
-        let tp = TimePosition(time: time, position: position)
+    func addAdditionalShots(time: Date, angle: Double, distance: Double) {
+        let tp = TimePosition(time: time, angle: angle, distance: distance)
         self.allShots.append(tp)
-        let result = self.driftAngleAndDistance()
-        if let angle = result.0, let distance = result.1 {
-            self.angle = angle
-            self.distance = distance
-//            LoggerManager.log.info("addAddtionalShots: angle: \(angle)  distance: \(distance)")
-        }
+//        let result = self.driftAngleAndDistance()
+//        if let angle = result.0, let distance = result.1 {
+//            self.angle = angle
+//            self.distance = distance
+////            LoggerManager.log.info("addAddtionalShots: angle: \(angle)  distance: \(distance)")
+//        }
     }
     
-    func driftAngleAndDistance() -> (Double?, Double?) {
-        guard self.allShots.count >= 2 else {
-            return (nil, nil) // Not enough points to calculate
-        }
-        
-        let firstPoint = self.allShots.first!.position
-        let lastPoint = self.allShots.last!.position
-        
-        // Calculate the differences in x and y
-        let deltaX = lastPoint.x - firstPoint.x
-        let deltaY = lastPoint.y - firstPoint.y
-        
-        // Calculate the angle in radians
-        let angleRadians = atan2(deltaY, deltaX)
-        
-        // Convert to degrees
-        let angleDegrees = angleRadians * 180 / .pi
-        
-        // Calculate distance using Pythagorean theorem
-        let distance = sqrt(pow(deltaX, 2) + pow(deltaY, 2))
-        
-        return (angleDegrees, distance)
-    }
+//    func driftAngleAndDistance() -> (Double?, Double?) {
+//        guard self.allShots.count >= 2 else {
+//            return (nil, nil) // Not enough points to calculate
+//        }
+//        
+//        let firstPoint = self.allShots.first!.position
+//        let lastPoint = self.allShots.last!.position
+//        
+//        // Calculate the differences in x and y
+//        let deltaX = lastPoint.x - firstPoint.x
+//        let deltaY = lastPoint.y - firstPoint.y
+//        
+//        // Calculate the angle in radians
+//        let angleRadians = atan2(deltaY, deltaX)
+//        
+//        // Convert to degrees
+//        let angleDegrees = angleRadians * 180 / .pi
+//        
+//        // Calculate distance using Pythagorean theorem
+//        let distance = sqrt(pow(deltaX, 2) + pow(deltaY, 2))
+//        
+//        return (angleDegrees, distance)
+//    }
     
     func toJson() throws -> String {
         let encoder = JSONEncoder()

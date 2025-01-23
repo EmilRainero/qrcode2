@@ -160,7 +160,7 @@ struct IContentView: View {
         print("boxes \(boxes.count)")
         let newImage = self.drawOnImage(image: image, rects: boxes, target: target)
         let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("bboxes.jpg")
-        saveUIImage(newImage!, to: fileURL)
+        _ = saveUIImage(newImage!, to: fileURL)
         self.processedImage = newImage
     }
     

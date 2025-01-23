@@ -81,14 +81,15 @@ class Target {
                 // Compute the distance
                 let dx = x - ellipse.centerx
                 let dy = y - ellipse.centery
-                // compute the distance
-                let distance = sqrt(dx * dx + dy * dy)
                 
-                // Compute the angle
-                let angle = atan2(dy, dx) // Angle in radians
-                let angleInDegrees = angle * (180.0 / .pi)
-                
-                return (score: Int32(self.rings[i].score), distance: distance, angle: angleInDegrees)
+                let distanceToPoint = sqrt(dx * dx + dy * dy)
+                let outerEllipse = self.rings[self.rings.count-1].ellipse  // outermost ellipse
+                let angle = atan2(dy, dx) * (180.0 / .pi)
+
+                let distanceToEdge = outerEllipse.distanceToEdge(angle: angle)
+                let distance = distanceToPoint / distanceToEdge  // percent of distance to edge of outer ellipse
+//                LoggerManager.log.info("dx: \(dx)  dy: \(dy)  distanceToPoint: \(distanceToPoint)  distanceToEdge: \(distanceToEdge)  distance: \(distance)  angle: \(angle)")
+                return (score: Int32(self.rings[i].score), distance: distance, angle: angle)
             }
         }
         return (score: 0, distance: -1.0, angle: 0.0) // Return 0.0 as angle if no overlap is found

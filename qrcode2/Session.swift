@@ -13,15 +13,18 @@ class Session: Codable {
     var starttime: Date
     var finishtime: Date? = nil
     var shots: [Shot]
+    var score: Int32
     
     init(starttime: Date) {
         self.id = UUID().uuidString
         self.starttime = starttime
         self.shots = []
+        self.score = 0
     }
     
     func addShot(shot: Shot) {
         self.shots.append(shot)
+        self.score += shot.score
     }
     
     func description() -> String {
