@@ -11,12 +11,24 @@ import SQLite
 class SessionDB {
     var id: Int64?
     var name: String
-    var email: String
+    var data: String
+    var starttime: Date
     
-    init(id: Int64?, name: String, email: String) {
+    init(id: Int64?, name: String, data: String, starttime: Date) {
         self.id = id
         self.name = name
-        self.email = email
+        self.data = data
+        self.starttime = starttime
+    }
+    
+    func toString() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        let formattedStartTime = dateFormatter.string(from: starttime)
+        return "Session: \(name), Start Time: \(formattedStartTime)"
+    }
+    func print() {
+        Swift.print(self.toString())
     }
 }
 
@@ -24,8 +36,9 @@ class DataAccess {
     var databaseFilename = nil as String?
     let id = SQLite.Expression<Int64>("id")
     let name = SQLite.Expression<String>(value: "name")
-    let email = SQLite.Expression<String>(value: "email")
-    
+    let data = SQLite.Expression<String>(value: "data")
+    let starttime = SQLite.Expression<Date>("starttime")
+
     init(_ databaseFilename: String) {
         self.databaseFilename = databaseFilename
     }
@@ -33,8 +46,11 @@ class DataAccess {
     func createSession(session: SessionDB) -> Int64? {
         do {
             let db = try Connection(fileName())
-            let stmt = try db.prepare("INSERT INTO sessions (name, email) VALUES (?, ?)")
-            try stmt.run(session.name, session.email)
+            let formatter = ISO8601DateFormatter()
+            formatter.timeZone = TimeZone.current
+        
+            let stmt = try db.prepare("INSERT INTO sessions (name, data, starttime) VALUES (?, ?, ?)")
+            try stmt.run(session.name, session.data, formatter.string(from: session.starttime))
             return db.lastInsertRowid
         } catch {
             print("ERROR: \(error)")
@@ -45,12 +61,21 @@ class DataAccess {
     func getSession(id: Int64) -> SessionDB? {
         do {
             let db = try Connection(fileName())
-            let query = "SELECT id, name, email FROM sessions WHERE id = \(id)"
+            let query = "SELECT id, name, data, starttime FROM sessions WHERE id = \(id)"
             for row in try db.prepare(query) {
+                let dateFormatter = ISO8601DateFormatter()
+                dateFormatter.timeZone = TimeZone.current
+                
+                let starttimeString = row[3] as? String
+                guard let starttime = dateFormatter.date(from: starttimeString!) else {
+                    continue // Skip rows with invalid starttime
+                }
+    
                 let session = SessionDB(
                     id: row[0] as? Int64,
                     name: (row[1] as? String)!,
-                    email: (row[2] as? String)!
+                    data: (row[2] as? String)!,
+                    starttime: starttime
                 )
                 return session
             }
@@ -65,12 +90,20 @@ class DataAccess {
         
         do {
             let db = try Connection(fileName())
+            let dateFormatter = ISO8601DateFormatter()
+            dateFormatter.timeZone = TimeZone.current
             
-            for row in try db.prepare("SELECT id, name, email FROM sessions") {
+            for row in try db.prepare("SELECT id, name, data, starttime FROM sessions") {
+                let starttimeString = row[3] as? String
+                guard let starttime = dateFormatter.date(from: starttimeString!) else {
+                    continue // Skip rows with invalid starttime
+                }
+                
                 let session = SessionDB(
                     id: row[0] as? Int64,
                     name: (row[1] as? String)!,
-                    email: (row[2] as? String)!
+                    data: (row[2] as? String)!,
+                    starttime: starttime
                 )
                 sessions.append(session)
             }
@@ -113,7 +146,8 @@ class DataAccess {
         let command = sessions.create { t in
             t.column(id, primaryKey: .autoincrement)
             t.column(name)
-            t.column(email)
+            t.column(data)
+            t.column(starttime)
         }
         try db.run(command)
         
@@ -126,79 +160,73 @@ func testDB() {
 
     dataAccess.initTables()
     
-    var rowId = dataAccess.createSession(session: SessionDB(id: nil, name: "John Doe", email: "johndoe@example.com"))
+    var rowId = dataAccess.createSession(session: SessionDB(id: nil, name: "John Doe", data: "johndoe@example.com", starttime: Date()))
     print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: SessionDB(id: nil, name: "Emil", email: "emil@example.com"))
+    rowId = dataAccess.createSession(session: SessionDB(id: nil, name: "Emil", data: "emil@example.com", starttime: Date()))
     print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: SessionDB(id: nil, name: "Susan", email: "susan@example.com"))
+    rowId = dataAccess.createSession(session: SessionDB(id: nil, name: "Susan", data: "susan@example.com", starttime: Date()))
     print("New session created with ID: \(rowId!)")
 
     let session = dataAccess.getSession(id: 2)!
-    print("Found session: \(session.id!)  \(session.name) - \(session.email)")
+    print("Found session: \(session.id!)  \(session.name) - \(session.data) \(session.starttime)")
 
     let sessions = dataAccess.getAllSessions()
     for session in sessions {
-        print("Session: \(session.id!)  \(session.name) - \(session.email)")
+        print(session.toString())
+        print("Session: \(session.id!)  \(session.name) - \(session.data) \(session.starttime)")
     }
     dataAccess.dropTables()
 }
 
-func fileName() -> String {
-    // Use FileManager to get the Documents directory path
-    let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-    let dbPath = documentDirectory.appendingPathComponent("db.sqlite3").path
-    return dbPath
-}
-
-func testDB2() {
-    do {
-        let db = try Connection(fileName())
-
-        let users = Table("users")
-        try db.run(users.drop(ifExists: true))
-
-        let id = SQLite.Expression<Int64>("id")
-        let name = Expression<String?>(value: "name")
-        let email = Expression<String>(value: "email")
-
-        try db.run(users.create { t in
-            t.column(id, primaryKey: true)
-            t.column(name)
-            t.column(email, unique: true)
-        })
-        
-        var stmt = try db.prepare("INSERT INTO users (name, email) VALUES (?, ?)")
-        try stmt.run("Alice", "alice@mac.com")
-        print(db.lastInsertRowid)
-        try stmt.run("Emil", "Emil@mac.com")
-        print(db.lastInsertRowid)
-        try stmt.run("John", "John@mac.com")
-        print(db.lastInsertRowid)
-        for row in try db.prepare("SELECT id, name, email FROM users") {
-            print("id: \(row[0]!), name: \(row[1]!)  email: \(row[2]!)")
-        }
-
-//        let alice = users.filter(id == 1)
-//        let update = alice.update(email <- "new@gmail.com")
-        stmt = try db.prepare("UPDATE users SET email = ? WHERE (\"id\" = ?)")
-//        print(update)
-        try stmt.run("foo@gmail.com", 1)
-        for row in try db.prepare("SELECT id, name, email FROM users") {
-            print("id: \(row[0]!), name: \(row[1]!)  email: \(row[2]!)")
-        }
-        stmt = try db.prepare("DELETE FROM \"users\" WHERE (\"id\" = ?)")
-        try stmt.run(2)
-        for row in try db.prepare("SELECT id, name, email FROM users") {
-            print("id: \(row[0]!), name: \(row[1]!)  email: \(row[2]!)")
-        }
-        
-//        try db.run(alice.delete())
-        // DELETE FROM "users" WHERE ("id" = 1)
-        
-        let count = try db.scalar(users.count) // 0
-        print(count)
-        // SELECT count(*) FROM "users"
-    } catch {
-        print (error)
-    }
-}
+//func fileName() -> String {
+//    // Use FileManager to get the Documents directory path
+//    let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+//    let dbPath = documentDirectory.appendingPathComponent("db.sqlite3").path
+//    return dbPath
+//}
+//
+//func testDB2() {
+//    do {
+//        let db = try Connection(fileName())
+//
+//        let users = Table("users")
+//        try db.run(users.drop(ifExists: true))
+//
+//        let id = SQLite.Expression<Int64>("id")
+//        let name = Expression<String?>(value: "name")
+//        let email = Expression<String>(value: "email")
+//
+//        try db.run(users.create { t in
+//            t.column(id, primaryKey: true)
+//            t.column(name)
+//            t.column(email, unique: true)
+//        })
+//        
+//        var stmt = try db.prepare("INSERT INTO users (name, email) VALUES (?, ?)")
+//        try stmt.run("Alice", "alice@mac.com")
+//        print(db.lastInsertRowid)
+//        try stmt.run("Emil", "Emil@mac.com")
+//        print(db.lastInsertRowid)
+//        try stmt.run("John", "John@mac.com")
+//        print(db.lastInsertRowid)
+//        for row in try db.prepare("SELECT id, name, email FROM users") {
+//            print("id: \(row[0]!), name: \(row[1]!)  email: \(row[2]!)")
+//        }
+//
+//        stmt = try db.prepare("UPDATE users SET email = ? WHERE (\"id\" = ?)")
+//        try stmt.run("foo@gmail.com", 1)
+//        for row in try db.prepare("SELECT id, name, email FROM users") {
+//            print("id: \(row[0]!), name: \(row[1]!)  email: \(row[2]!)")
+//        }
+//        stmt = try db.prepare("DELETE FROM \"users\" WHERE (\"id\" = ?)")
+//        try stmt.run(2)
+//        for row in try db.prepare("SELECT id, name, email FROM users") {
+//            print("id: \(row[0]!), name: \(row[1]!)  email: \(row[2]!)")
+//        }
+//        
+//        let count = try db.scalar(users.count) // 0
+//        print(count)
+//    } catch {
+//        print (error)
+//    }
+//}
