@@ -71,21 +71,3 @@ class AppStateMachine {
         }
     }
 }
-
-func test() {
-    // Step 4: Use the state machine
-    let appStateMachine = AppStateMachine(initialState: .initial)
-    print(appStateMachine.currentState)
-
-    appStateMachine.handle(event: .startCalibration)
-    print(appStateMachine.currentState)
-        
-    appStateMachine.handle(event: .endCalibration)
-    print(appStateMachine.currentState)
-    
-    appStateMachine.handle(event: .startRunSession)
-    print(appStateMachine.currentState)
-    
-    appStateMachine.handle(event: .endRunSession)
-    print(appStateMachine.currentState)
-}

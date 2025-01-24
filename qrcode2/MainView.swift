@@ -95,77 +95,45 @@ struct MainView: View {
             }
         }
         .onAppear {
-//            test()
             deleteAllTemporaryFiles()
+            testDB()
+            
             // Navigate to CameraView immediately when the view appears - DEBUGGING
 //            navigationPath.append("start")
         }
     }
     
-//    func test() {
-//        let server = Server(baseURL: "http://192.168.5.3:5001")
-//        if server.getLoginToken(username: "a", password: "b") {
-//            print("Login successful")
-//        } else {
-//            print("Login failed - \(server.errorMessage)")
-//        }
+}
+//
+//func displayNumber(on view: UIView, number: Int) {
+//    // Create the label
+//    let label = UILabel()
+//    label.text = "\(number)"
+//    label.font = UIFont.systemFont(ofSize: 100, weight: .bold) // Large font
+//    label.textColor = .black
+//    label.textAlignment = .center
+//    label.backgroundColor = UIColor.white.withAlphaComponent(0.8)
+//    label.layer.cornerRadius = 10
+//    label.layer.masksToBounds = true
+//
+//    // Set the size and position of the label
+//    label.translatesAutoresizingMaskIntoConstraints = false
+//    view.addSubview(label)
+//    NSLayoutConstraint.activate([
+//        label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+//        label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+//        label.widthAnchor.constraint(equalToConstant: 200),
+//        label.heightAnchor.constraint(equalToConstant: 150)
+//    ])
+//
+//    // Animate the label to fade out after 1 second
+//    UIView.animate(withDuration: 0.5, delay: 1, options: [], animations: {
+//        label.alpha = 0
+//    }) { _ in
+//        // Remove the label after the animation
+//        label.removeFromSuperview()
 //    }
-}
-
-func displayNumber(on view: UIView, number: Int) {
-    // Create the label
-    let label = UILabel()
-    label.text = "\(number)"
-    label.font = UIFont.systemFont(ofSize: 100, weight: .bold) // Large font
-    label.textColor = .black
-    label.textAlignment = .center
-    label.backgroundColor = UIColor.white.withAlphaComponent(0.8)
-    label.layer.cornerRadius = 10
-    label.layer.masksToBounds = true
-
-    // Set the size and position of the label
-    label.translatesAutoresizingMaskIntoConstraints = false
-    view.addSubview(label)
-    NSLayoutConstraint.activate([
-        label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-        label.widthAnchor.constraint(equalToConstant: 200),
-        label.heightAnchor.constraint(equalToConstant: 150)
-    ])
-
-    // Animate the label to fade out after 1 second
-    UIView.animate(withDuration: 0.5, delay: 1, options: [], animations: {
-        label.alpha = 0
-    }) { _ in
-        // Remove the label after the animation
-        label.removeFromSuperview()
-    }
-}
-
-func deleteAllTemporaryFiles() {
-    let fileManager = FileManager.default
-    let tempDirectory = NSTemporaryDirectory()
-
-    do {
-        // Get the list of all files in the temporary directory
-        let tempFiles = try fileManager.contentsOfDirectory(atPath: tempDirectory)
-        
-        for file in tempFiles {
-            let filePath = (tempDirectory as NSString).appendingPathComponent(file)
-            
-            do {
-                // Delete each file
-                try fileManager.removeItem(atPath: filePath)
-//                print("Deleted: \(filePath)")
-            } catch let error {
-                print("Failed to delete \(filePath): \(error)")
-            }
-        }
-//        print("All temporary files deleted successfully.")
-    } catch let error {
-        print("Failed to get contents of temp directory: \(error)")
-    }
-}
+//}
 
 
 
