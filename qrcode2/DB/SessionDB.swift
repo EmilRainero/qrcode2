@@ -9,7 +9,7 @@ import Foundation
 
 extension DB {
     
-    class SessionDB {
+    class Session {
         var id: Int64?
         var name: String
         var data: String
@@ -44,5 +44,4 @@ extension DB {
 //
 //        }
     }
-
 }

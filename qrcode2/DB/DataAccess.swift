@@ -21,7 +21,7 @@ extension DB {
             self.databaseFilename = databaseFilename
         }
             
-        func createSession(session: SessionDB) -> Int64? {
+        func createSession(session: Session) -> Int64? {
             do {
                 let db = try Connection(fileName())
                 let formatter = ISO8601DateFormatter()
@@ -36,7 +36,7 @@ extension DB {
             return nil
         }
         
-        func getSession(id: Int64) -> SessionDB? {
+        func getSession(id: Int64) -> Session? {
             do {
                 let db = try Connection(fileName())
                 let query = "SELECT id, name, data, starttime FROM sessions WHERE id = \(id)"
@@ -49,7 +49,7 @@ extension DB {
                         continue // Skip rows with invalid starttime
                     }
         
-                    let session = SessionDB(
+                    let session = Session(
                         id: row[0] as? Int64,
                         name: (row[1] as? String)!,
                         data: (row[2] as? String)!,
@@ -63,8 +63,8 @@ extension DB {
             return nil
         }
         
-        func getAllSessions() -> [SessionDB] {
-            var sessions = [SessionDB]()
+        func getAllSessions() -> [Session] {
+            var sessions = [Session]()
             
             do {
                 let db = try Connection(fileName())
@@ -77,7 +77,7 @@ extension DB {
                         continue // Skip rows with invalid starttime
                     }
                     
-                    let session = SessionDB(
+                    let session = Session(
                         id: row[0] as? Int64,
                         name: (row[1] as? String)!,
                         data: (row[2] as? String)!,
@@ -142,11 +142,11 @@ func testDB() {
     
     dataAccess.initTables()
     
-    var rowId = dataAccess.createSession(session: DB.SessionDB(id: nil as Int64?, name: "John Doe", data: "johndoe@example.com", starttime: Date()))
+    var rowId = dataAccess.createSession(session: DB.Session(id: nil as Int64?, name: "John Doe", data: "johndoe@example.com", starttime: Date()))
     print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: DB.SessionDB(id: nil, name: "Emil", data: "emil@example.com", starttime: Date()))
+    rowId = dataAccess.createSession(session: DB.Session(id: nil, name: "Emil", data: "emil@example.com", starttime: Date()))
     print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: DB.SessionDB(id: nil, name: "Susan", data: "susan@example.com", starttime: Date()))
+    rowId = dataAccess.createSession(session: DB.Session(id: nil, name: "Susan", data: "susan@example.com", starttime: Date()))
     print("New session created with ID: \(rowId!)")
 
     let session = dataAccess.getSession(id: 2)!
