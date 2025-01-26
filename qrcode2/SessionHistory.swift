@@ -22,7 +22,7 @@ struct SessionHistoryView: View {
     init(navigationPath: Binding<NavigationPath>) {
         self._navigationPath = navigationPath
 
-        let dataAccess = DataAccess("db.sqlite3")
+        let dataAccess = DB.DataAccess("db.sqlite3")
         self.sessions = []
         let sessions = dataAccess.getAllSessions()
         for session in sessions {
