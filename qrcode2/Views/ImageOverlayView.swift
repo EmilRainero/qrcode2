@@ -133,7 +133,7 @@ struct IContentView: View {
             let y = Int(stat.get(row: 0, col: 1)[0])
             let width = Int(stat.get(row: 0, col: 2)[0])
             let height = Int(stat.get(row: 0, col: 3)[0])
-            let area = Int(stat.get(row: 0, col: 4)[0])
+//            let area = Int(stat.get(row: 0, col: 4)[0])
             
             if x != 0 && height >= 12 && width >= 12 {
                 print("x: \(x), y: \(y), width: \(width), height: \(height), area: \(width * height)")
@@ -150,7 +150,7 @@ struct IContentView: View {
             let score = Int(boxes[i].width * boxes[i].height)
             let centerx = boxes[i].minX + boxes[i].width/2
             let centery = boxes[i].minY + boxes[i].height/2
-            let ellipse = Ellipse(centerx: centerx, centery: centery, majorAxis: boxes[i].width, minorAxis: boxes[i].height)
+            let ellipse = Models.Ellipse(centerx: centerx, centery: centery, majorAxis: boxes[i].width, minorAxis: boxes[i].height)
             let ring = TargetRing(score: score, ellipse: ellipse)
             target.addRing(ring: ring)
         }

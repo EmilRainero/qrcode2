@@ -11,9 +11,9 @@ import opencv2
 
 class TargetRing: Codable {
     var score: Int
-    var ellipse: Ellipse
+    var ellipse: Models.Ellipse
     
-    init(score: Int, ellipse: Ellipse) {
+    init(score: Int, ellipse: Models.Ellipse) {
         self.score = score
         self.ellipse = ellipse
     }
@@ -64,9 +64,9 @@ class Target {
     }
     
     func getScore(x: Double, y: Double, radius: Double) -> Int32 {
-        let circle = Circle(x: x, y: y, radius: radius)
+        let circle = Models.Circle(x: x, y: y, radius: radius)
         for i in 0..<self.rings.count {
-            if isCircleOverlappingEllipse(circle: circle, ellipse: self.rings[i].ellipse) {
+            if Models.isCircleOverlappingEllipse(circle: circle, ellipse: self.rings[i].ellipse) {
                 return Int32(self.rings[i].score)
             }
         }
@@ -74,10 +74,10 @@ class Target {
     }
     
     func getScoreDistanceAndAngle(x: Double, y: Double, radius: Double) -> (score: Int32, distance: Double, angle: Double) {
-        let circle = Circle(x: x, y: y, radius: radius)
+        let circle = Models.Circle(x: x, y: y, radius: radius)
         for i in 0..<self.rings.count {
             let ellipse = self.rings[i].ellipse
-            if isCircleOverlappingEllipse(circle: circle, ellipse: ellipse) {
+            if Models.isCircleOverlappingEllipse(circle: circle, ellipse: ellipse) {
                 // Compute the distance
                 let dx = x - ellipse.centerx
                 let dy = y - ellipse.centery
@@ -143,7 +143,7 @@ func processTarget(image: UIImage) -> Target {
         let score = Int(boxes[i].width * boxes[i].height)
         let centerx = boxes[i].minX + boxes[i].width/2
         let centery = boxes[i].minY + boxes[i].height/2
-        let ellipse = Ellipse(centerx: centerx, centery: centery, majorAxis: boxes[i].width, minorAxis: boxes[i].height)
+        let ellipse = Models.Ellipse(centerx: centerx, centery: centery, majorAxis: boxes[i].width, minorAxis: boxes[i].height)
         let ring = TargetRing(score: score, ellipse: ellipse)
         target.addRing(ring: ring)
     }

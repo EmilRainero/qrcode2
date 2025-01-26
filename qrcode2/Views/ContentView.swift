@@ -15,7 +15,7 @@ import opencv2
 struct ContentView: View {
     @Binding var navigationPath: NavigationPath
 
-    @State private var detectedCodes: [DetectedQRCode] = []
+    @State private var detectedCodes: [Models.DetectedQRCode] = []
     @State private var rectifiedImage: UIImage? = nil
 
     // Store the image size for scaling coordinates
@@ -161,7 +161,7 @@ struct ContentView: View {
 
         var boundingBoxes: [Rect] = []  // Create an array to store bounding boxes
 
-        var codes: [DetectedQRCode] = []
+        var codes: [Models.DetectedQRCode] = []
 
         for i in 0..<contours.count {
             if let contourArray = contours[i] as? NSArray {
@@ -182,7 +182,7 @@ struct ContentView: View {
                 
                 boundingBoxes.append(boundingBox)
                 let y: Int = Int(originalImageSize.height)
-                let code = DetectedQRCode(
+                let code = Models.DetectedQRCode(
                     message: "message",
                     topLeft: CGPoint(x: Int(boundingBox.x), y: y - Int(boundingBox.y)),
                     topRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y)),
@@ -220,11 +220,11 @@ struct ContentView: View {
         
         // Detect QR codes in the image
         if let features = detector?.features(in: ciImage) as? [CIQRCodeFeature] {
-            var codes: [DetectedQRCode] = []
+            var codes: [Models.DetectedQRCode] = []
             for feature in features {
                 if let message = feature.messageString {
                     // Create DetectedQRCode objects with corner points
-                    let code = DetectedQRCode(
+                    let code = Models.DetectedQRCode(
                         message: message,
                         topLeft: feature.topLeft,
                         topRight: feature.topRight,
@@ -255,7 +255,7 @@ struct ContentView: View {
         }
     }
     
-    func rectifyImage(using codes: [DetectedQRCode]) {
+    func rectifyImage(using codes: [Models.DetectedQRCode]) {
         if codes.count > 1 {
             // For multiple QR codes, rectify using all detected corners
             rectifyImageForMultipleCodes(using: codes)
@@ -266,7 +266,7 @@ struct ContentView: View {
     }
 
     // Function to rectify the image using a single QR code
-    func rectifyImageForSingleCode(using code: DetectedQRCode) {
+    func rectifyImageForSingleCode(using code: Models.DetectedQRCode) {
         let inputPoints = [
             code.topLeft,
             code.topRight,
@@ -307,7 +307,7 @@ struct ContentView: View {
     
     
     // Function to rectify the image using multiple QR codes
-    func rectifyImageForMultipleCodes(using codes: [DetectedQRCode]) {
+    func rectifyImageForMultipleCodes(using codes: [Models.DetectedQRCode]) {
         // Aggregate all the corner points from the detected QR codes
         var allPoints: [CGPoint] = []
         for code in codes {
@@ -381,7 +381,7 @@ struct ContentView: View {
         applyPerspectiveCorrection(inputPoints: inputPoints, targetPoints: targetPoints)
     }
 
-    func QRCodesBoundingRect(codes: [DetectedQRCode]) -> Path {
+    func QRCodesBoundingRect(codes: [Models.DetectedQRCode]) -> Path {
         var path = Path()
         guard codes.count == 4 else { return path }
 
@@ -488,7 +488,7 @@ struct QRCodeOverlay: Shape {
     }
 }
 
-func findQRCodesBoundingRect(codes: [DetectedQRCode]) -> (upperLeft: CGPoint, upperRight: CGPoint, lowerLeft: CGPoint, lowerRight: CGPoint)
+func findQRCodesBoundingRect(codes: [Models.DetectedQRCode]) -> (upperLeft: CGPoint, upperRight: CGPoint, lowerLeft: CGPoint, lowerRight: CGPoint)
 {
     var points: [CGPoint] = []
     for code in codes {

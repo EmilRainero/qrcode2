@@ -163,15 +163,15 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var shotsFired: Int32 = 0
 
 
-    private var detectedQRCodes: [DetectedQRCode]? = []
-    private var laserSpots: [DetectedQRCode]?
+    private var detectedQRCodes: [Models.DetectedQRCode]? = []
+    private var laserSpots: [Models.DetectedQRCode]?
 
     private var captureSession: AVCaptureSession?
     private let context = CIContext()
     public var frameCount: Int32 = 0
-    private var qrCodeMap: [Int32: [DetectedQRCode]] = [:]
+    private var qrCodeMap: [Int32: [Models.DetectedQRCode]] = [:]
     public var rectifiedImage: UIImage? = .none
-    private var corners: [DetectedQRCode] = []
+    private var corners: [Models.DetectedQRCode] = []
     private var lastFrame: UIImage? = .none
     private var session: Models.Session? = .none
     
@@ -293,7 +293,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         return UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
     }
     
-    func detectLaserOriginal(image: UIImage, frameCount: Int32) -> (found: Bool, codes: [DetectedQRCode]) {
+    func detectLaserOriginal(image: UIImage, frameCount: Int32) -> (found: Bool, codes: [Models.DetectedQRCode]) {
         let cropRect = CGRect(x: 0, y: 200, width: Int(image.size.width), height: 1000)
         let newImage = cropImage(image, toRect: cropRect)
         let uiImage = newImage!
@@ -339,7 +339,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 
         var boundingBoxes: [Rect] = []  // Create an array to store bounding boxes
 
-        var codes: [DetectedQRCode] = []
+        var codes: [Models.DetectedQRCode] = []
 
         for i in 0..<contours.count {
             if let contourArray = contours[i] as? NSArray {
@@ -360,7 +360,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 
                 boundingBoxes.append(boundingBox)
                 let y: Int = Int(dilatedMat.size().height)
-                let code = DetectedQRCode(
+                let code = Models.DetectedQRCode(
                     message: "frame \(frameCount)",
                     topLeft: CGPoint(x: Int(boundingBox.x), y: y - Int(boundingBox.y)),
                     topRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y)),
@@ -390,7 +390,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         return (found: codes.count > 0, codes: codes)
     }
     
-    func detectLaser(image: UIImage, frameCount: Int32) -> (found: Bool, codes: [DetectedQRCode]) {
+    func detectLaser(image: UIImage, frameCount: Int32) -> (found: Bool, codes: [Models.DetectedQRCode]) {
         let writeImages = false
         
         let cropRect = CGRect(x: 0, y: 200, width: Int(image.size.width), height: 1000)
@@ -497,7 +497,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 //        print("Number of components: \(numComponents)")
 
         // Process the components to identify regions of interest
-        var codes: [DetectedQRCode] = []
+        var codes: [Models.DetectedQRCode] = []
         for i in 0..<numComponents { // Skip the background (component 0)
             let stat = stats.row(i)
             let x = Int32(stat.get(row: 0, col: 0)[0])
@@ -515,7 +515,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 //            print("Component \(i): x=\(x), y=\(y), width=\(width), height=\(height), area=\(area)")
 
             let maxY: Int = Int(dilatedMat.size().height)
-            var code = DetectedQRCode(
+            var code = Models.DetectedQRCode(
                 message: "frame \(frameCount)",
                 topLeft: CGPoint(x: Int(x), y: maxY - Int(y)),
                 topRight: CGPoint(x: Int(x + width), y: maxY - Int(y)),
@@ -610,7 +610,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 //                        let score = target.getScore(x: x, y: y, radius:2.5)
                         let (score, distance, angle) = target.getScoreDistanceAndAngle(x: x, y: y, radius: shotRadiusPixels)
 
-                        let shot = Shot(time: Date(), angle: angle, distance: distance, score: score)
+                        let shot = Models.Shot(time: Date(), angle: angle, distance: distance, score: score)
                         self.session!.addShot(shot: shot)
 //                        print("LASER Frame: \(frameCount) SCORE \(score) ")
                         LoggerManager.log.info("LASER Frame: \(frameCount) SCORE \(score) ")
@@ -637,11 +637,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             if appStateMachine.currentState == .initial || appStateMachine.currentState == .calibrating{
                 let detector = CIDetector(ofType: CIDetectorTypeQRCode, context: nil, options: [CIDetectorAccuracy: CIDetectorAccuracyHigh])
                 if let features = detector?.features(in: ciImage) as? [CIQRCodeFeature] {
-                    var codes: [DetectedQRCode] = []
+                    var codes: [Models.DetectedQRCode] = []
                     for feature in features {
                         if let message = feature.messageString {
                             // Create DetectedQRCode objects with corner points
-                            let code = DetectedQRCode(
+                            let code = Models.DetectedQRCode(
                                 message: message,
                                 topLeft: feature.topLeft,
                                 topRight: feature.topRight,
@@ -690,7 +690,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                                 } else {
                                     print("nil rectifiedImage")
                                 }
-                                let code = DetectedQRCode(
+                                let code = Models.DetectedQRCode(
                                     message: "hello",
                                     topLeft: result.upperLeft!,
                                     topRight: result.upperRight!,
@@ -757,7 +757,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
     }
     
-    func drawOnImage(image: UIImage, codes: [DetectedQRCode]?, color: UIColor) -> UIImage? {
+    func drawOnImage(image: UIImage, codes: [Models.DetectedQRCode]?, color: UIColor) -> UIImage? {
         let renderer = UIGraphicsImageRenderer(size: image.size)
 
         return renderer.image { context in
@@ -828,7 +828,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
     }
     
-    func drawOnImage2(image: UIImage, codes: [DetectedQRCode]?, color: UIColor) -> UIImage? {
+    func drawOnImage2(image: UIImage, codes: [Models.DetectedQRCode]?, color: UIColor) -> UIImage? {
         
         // Create a graphics context matching the image size
         let renderer = UIGraphicsImageRenderer(size: image.size)
@@ -914,7 +914,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 
         var boundingBoxes: [Rect] = []  // Create an array to store bounding boxes
 
-        var codes: [DetectedQRCode] = []
+        var codes: [Models.DetectedQRCode] = []
 
         for i in 0..<contours.count {
             if let contourArray = contours[i] as? NSArray {
@@ -935,7 +935,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 
                 boundingBoxes.append(boundingBox)
                 let y: Int = Int(originalImageSize.height)
-                let code = DetectedQRCode(
+                let code = Models.DetectedQRCode(
                     message: "message",
                     topLeft: CGPoint(x: Int(boundingBox.x), y: y - Int(boundingBox.y)),
                     topRight: CGPoint(x: Int(boundingBox.x + boundingBox.width), y: y - Int(boundingBox.y)),
@@ -979,7 +979,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
     }
     
-    func rectifyImageForMultipleCodes(image: UIImage, using codes: [DetectedQRCode]) -> (image: UIImage?,
+    func rectifyImageForMultipleCodes(image: UIImage, using codes: [Models.DetectedQRCode]) -> (image: UIImage?,
                                                                                          upperLeft: CGPoint?, upperRight: CGPoint?, lowerLeft: CGPoint?, lowerRight: CGPoint?) {
         // Aggregate all the corner points from the detected QR codes
         var allPoints: [CGPoint] = []
