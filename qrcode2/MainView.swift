@@ -55,7 +55,7 @@ struct MainView: View {
                 Button(action: {
                         navigationPath.append("reports")
                 }) {
-                    Text("Reports")
+                    Text("History")
                         .frame(width: 200)
                         .padding(.vertical, 10) // Adds vertical padding around the text
                         .padding(.horizontal, 20) // Adds horizontal padding for a wider button
@@ -90,7 +90,8 @@ struct MainView: View {
                     CameraView(navigationPath: $navigationPath, appStateMachine: $appStateMachine)
                 }
                 if value == "reports" {
-                    ReportsView(navigationPath: $navigationPath)
+//                    ReportsView(navigationPath: $navigationPath)
+                    SessionHistoryView(navigationPath: $navigationPath)
                 }
             }
         }

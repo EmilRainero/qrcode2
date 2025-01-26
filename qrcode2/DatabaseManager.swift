@@ -155,9 +155,10 @@ class DataAccess {
 }
 
 func testDB() {
+    return
+    
     let dataAccess = DataAccess("db.sqlite3")
-    dataAccess.dropTables()
-
+    
     dataAccess.initTables()
     
     var rowId = dataAccess.createSession(session: SessionDB(id: nil, name: "John Doe", data: "johndoe@example.com", starttime: Date()))
@@ -175,7 +176,8 @@ func testDB() {
         print(session.toString())
         print("Session: \(session.id!)  \(session.name) - \(session.data) \(session.starttime)")
     }
-    dataAccess.dropTables()
+    
+//    dataAccess.dropTables()
 }
 
 //func fileName() -> String {
