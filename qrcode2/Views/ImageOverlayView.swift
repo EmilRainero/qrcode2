@@ -47,7 +47,7 @@ struct IContentView: View {
         }
     }
     
-    func drawOnImage(image: UIImage, rects: [CGRect], target: Target) -> UIImage? {
+    func drawOnImage(image: UIImage, rects: [CGRect], target: Models.Target) -> UIImage? {
         let renderer = UIGraphicsImageRenderer(size: image.size)
         
         return renderer.image { context in
@@ -145,13 +145,13 @@ struct IContentView: View {
             }
         }
         
-        let target = Target(name: "Test")
+        let target = Models.Target(name: "Test")
         for i in 0..<boxes.count {
             let score = Int(boxes[i].width * boxes[i].height)
             let centerx = boxes[i].minX + boxes[i].width/2
             let centery = boxes[i].minY + boxes[i].height/2
             let ellipse = Models.Ellipse(centerx: centerx, centery: centery, majorAxis: boxes[i].width, minorAxis: boxes[i].height)
-            let ring = TargetRing(score: score, ellipse: ellipse)
+            let ring = Models.TargetRing(score: score, ellipse: ellipse)
             target.addRing(ring: ring)
         }
         target.assignScores()

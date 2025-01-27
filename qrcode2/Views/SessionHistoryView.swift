@@ -10,8 +10,7 @@ import SwiftUI
 // Model for Session
 struct SessionItem: Identifiable {
     let id = UUID()
-    let title: String
-    let description: String
+    let session: DB.Session
 }
 
 // Main ContentView
@@ -27,9 +26,11 @@ struct SessionHistoryView: View {
         let sessions = dataAccess.getAllSessions()
         for session in sessions {
             let sessionItem = SessionItem(
-                title: formatDateToLocalTime(date: session.starttime,
-                                             format: "yyyy-MM-dd HH:mm"),
-                description: "Score: 32  Average: 8.2")
+                session: session
+//                title: formatDateToLocalTime(date: session.starttime,
+//                                             format: "yyyy-MM-dd HH:mm"),
+//                description: "Score: 32  Average: 8.2"
+            )
             self.sessions.append(sessionItem)
         }
 //        self.sessions = [
@@ -48,10 +49,10 @@ struct SessionHistoryView: View {
             List(sessions) { session in
                 NavigationLink(destination: SessionDetailView(session: session)) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(session.title)
+                        Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm"))
                             .font(.headline)
 
-                        Text(session.description) // Replace with actual session details if needed
+                        Text("Score: 32  Average: 8.2") // Replace with actual session details if needed
                             .font(.subheadline)
                             .foregroundColor(.gray)
                     }
@@ -71,13 +72,13 @@ struct SessionDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(session.title)
+            Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm"))
                 .font(.largeTitle)
                 .bold()
 
-            Text(session.description)
-                .font(.body)
-                .foregroundColor(.gray)
+//            Text(session.session.name)
+//                .font(.body)
+//                .foregroundColor(.gray)
 
             Spacer()
         }
@@ -86,10 +87,3 @@ struct SessionDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-//
-//// Preview
-//struct ContentView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        SessionHistoryView()
-//    }
-//}

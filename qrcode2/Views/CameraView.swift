@@ -580,7 +580,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                                 
                 let detect = detectLaser(image: result.image!, frameCount: frameCount)
                 if detect.found {
-                    let target = processTarget(image: self.lastFrame!)
+                    let target = Models.processTarget(image: self.lastFrame!)
                     let code = detect.codes[0]
                     
                     var skip = false

@@ -13,7 +13,6 @@ extension DB {
     class DataAccess {
         var databaseFilename = nil as String?
         let id = SQLite.Expression<Int64>("id")
-        let name = SQLite.Expression<String>(value: "name")
         let data = SQLite.Expression<String>(value: "data")
         let starttime = SQLite.Expression<Date>("starttime")
 
@@ -27,8 +26,8 @@ extension DB {
                 let formatter = ISO8601DateFormatter()
                 formatter.timeZone = TimeZone.current
             
-                let stmt = try db.prepare("INSERT INTO sessions (name, data, starttime) VALUES (?, ?, ?)")
-                try stmt.run(session.name, session.data, formatter.string(from: session.starttime))
+                let stmt = try db.prepare("INSERT INTO sessions (data, starttime) VALUES (?, ?)")
+                try stmt.run(session.data, formatter.string(from: session.starttime))
                 return db.lastInsertRowid
             } catch {
                 print("ERROR: \(error)")
@@ -39,19 +38,18 @@ extension DB {
         func getSession(id: Int64) -> Session? {
             do {
                 let db = try Connection(fileName())
-                let query = "SELECT id, name, data, starttime FROM sessions WHERE id = \(id)"
+                let query = "SELECT id, data, starttime FROM sessions WHERE id = \(id)"
                 for row in try db.prepare(query) {
                     let dateFormatter = ISO8601DateFormatter()
                     dateFormatter.timeZone = TimeZone.current
                     
-                    let starttimeString = row[3] as? String
+                    let starttimeString = row[2] as? String
                     guard let starttime = dateFormatter.date(from: starttimeString!) else {
                         continue // Skip rows with invalid starttime
                     }
         
                     let session = Session(
                         id: row[0] as? Int64,
-                        name: (row[1] as? String)!,
                         data: (row[2] as? String)!,
                         starttime: starttime
                     )
@@ -71,15 +69,14 @@ extension DB {
                 let dateFormatter = ISO8601DateFormatter()
                 dateFormatter.timeZone = TimeZone.current
                 
-                for row in try db.prepare("SELECT id, name, data, starttime FROM sessions") {
-                    let starttimeString = row[3] as? String
+                for row in try db.prepare("SELECT id, data, starttime FROM sessions") {
+                    let starttimeString = row[2] as? String
                     guard let starttime = dateFormatter.date(from: starttimeString!) else {
                         continue // Skip rows with invalid starttime
                     }
                     
                     let session = Session(
                         id: row[0] as? Int64,
-                        name: (row[1] as? String)!,
                         data: (row[2] as? String)!,
                         starttime: starttime
                     )
@@ -123,7 +120,6 @@ extension DB {
 
             let command = sessions.create { t in
                 t.column(id, primaryKey: .autoincrement)
-                t.column(name)
                 t.column(data)
                 t.column(starttime)
             }
@@ -136,26 +132,26 @@ extension DB {
 
 
 func testDB() {
-    return
     
     let dataAccess = DB.DataAccess("db.sqlite3")
-    
+    dataAccess.dropTables()
+
     dataAccess.initTables()
     
-    var rowId = dataAccess.createSession(session: DB.Session(id: nil as Int64?, name: "John Doe", data: "johndoe@example.com", starttime: Date()))
+    var rowId = dataAccess.createSession(session: DB.Session(id: nil as Int64?, data: "johndoe@example.com", starttime: Date()))
     print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: DB.Session(id: nil, name: "Emil", data: "emil@example.com", starttime: Date()))
+    rowId = dataAccess.createSession(session: DB.Session(id: nil, data: "emil@example.com", starttime: Date()))
     print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: DB.Session(id: nil, name: "Susan", data: "susan@example.com", starttime: Date()))
+    rowId = dataAccess.createSession(session: DB.Session(id: nil, data: "susan@example.com", starttime: Date()))
     print("New session created with ID: \(rowId!)")
 
     let session = dataAccess.getSession(id: 2)!
-    print("Found session: \(session.id!)  \(session.name) - \(session.data) \(session.starttime)")
+    print("Found session: \(session.id!)  - \(session.data) \(session.starttime)")
 
     let sessions = dataAccess.getAllSessions()
     for session in sessions {
         print(session.toString())
-        print("Session: \(session.id!)  \(session.name) - \(session.data) \(session.starttime)")
+        print("Session: \(session.id!)  - \(session.data) \(session.starttime)")
     }
     
 //    dataAccess.dropTables()
