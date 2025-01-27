@@ -139,18 +139,31 @@ func testDB() {
 
     dataAccess.initTables()
     
-    let msession = Models.Session(starttime: Date())
-    msession.addShot(shot: Models.Shot(time: Date(), angle: 0.0, distance: 0.5, score: 5))
-    msession.finish(finishtime: Date())
-    let data = msession.toJson()
-    var rowId = dataAccess.createSession(session: DB.Session(id: "0", data: data, starttime: Date()))
-    print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: DB.Session(id: "1", data: data, starttime: Date()))
-    print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: DB.Session(id: "2'", data: data, starttime: Date()))
-    print("New session created with ID: \(rowId!)")
+    var currentDate = Date() // Current date and time
+    for i in 1...5 {
+        let startdate = currentDate
+        let finishdate = startdate.addingTimeInterval(75)
+        
+        let msession = Models.Session(starttime: startdate)
+        msession.addShot(shot: Models.Shot(time: Date(), angle: 0.0, distance: 0.5, score: 5))
+        msession.finish(finishtime: finishdate)
+        let rowId = dataAccess.createSession(session: DB.Session(id: "\(i)", data: msession.toJson(), starttime: Date()))
+        print("New session created with ID: \(rowId!)")
+        
+        currentDate = currentDate.addingTimeInterval(60)
+    }
+//    var msession = Models.Session(starttime: startdate)
+//    msession.addShot(shot: Models.Shot(time: Date(), angle: 0.0, distance: 0.5, score: 5))
+//    msession.finish(finishtime: finishdate)
+//    let data = msession.toJson()
+//    var rowId = dataAccess.createSession(session: DB.Session(id: "0", data: data, starttime: Date()))
+//    print("New session created with ID: \(rowId!)")
+//    rowId = dataAccess.createSession(session: DB.Session(id: "1", data: data, starttime: Date()))
+//    print("New session created with ID: \(rowId!)")
+//    rowId = dataAccess.createSession(session: DB.Session(id: "2'", data: data, starttime: Date()))
+//    print("New session created with ID: \(rowId!)")
 
-    let session = dataAccess.getSession(id: "0")!
+    let session = dataAccess.getSession(id: "1")!
     print("Found session: \(session.id)  - \(session.data) \(session.starttime)")
     
 //    print(session.data)

@@ -36,6 +36,15 @@ extension Models {
             self.finishtime = finishtime
         }
         
+        func shotAverage() -> Double {
+            guard !shots.isEmpty else { return 0.0 }
+            
+            let average = Double(self.score) / Double(self.shots.count)
+            return average
+        }
+        
+        
+        
         func toJson() -> String {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted

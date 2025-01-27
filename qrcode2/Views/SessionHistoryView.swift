@@ -52,7 +52,7 @@ struct SessionHistoryView: View {
                         Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm a"))
                             .font(.headline)
 
-                        Text("Score: \(session.session.score)") // Replace with actual session details if needed
+                        Text("Score: \(session.session.score)  Average: \(String(format: "%.1f", session.session.shotAverage()))") // Replace with actual session details if needed
                             .font(.subheadline)
                             .foregroundColor(.gray)
                     }
@@ -76,9 +76,15 @@ struct SessionDetailView: View {
             Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm a"))
                 .font(.largeTitle)
                 .bold()
-            Text(formatDateToLocalTime(date: session.session.finishtime!, format: "yyyy-MM-dd HH:mm a"))
-                .bold()
+            Text("Score: \(session.session.score)  Average: \(String(format: "%.1f", session.session.shotAverage()))") // Replace with actual session details if needed
+                .font(.body)
 
+            Text("Finish time: \(formatDateToLocalTime(date: session.session.finishtime!, format: "yyyy-MM-dd HH:mm a"))")
+                .font(.body)
+
+            Text("Duration: \(computeDuration(start: session.session.starttime, finish: session.session.finishtime!))")
+                .font(.body)
+            
 //            Text(session.session.name)
 //                .font(.body)
 //                .foregroundColor(.gray)
