@@ -12,7 +12,8 @@ extension DB {
     
     class DataAccess {
         var databaseFilename = nil as String?
-        let id = SQLite.Expression<Int64>("id")
+//        let id = SQLite.Expression<Int64>("id")
+        let id = SQLite.Expression<String>(value: "id")
         let data = SQLite.Expression<String>(value: "data")
         let starttime = SQLite.Expression<Date>("starttime")
 
@@ -24,10 +25,10 @@ extension DB {
             do {
                 let db = try Connection(fileName())
                 let formatter = ISO8601DateFormatter()
-                formatter.timeZone = TimeZone.current
+//                formatter.timeZone = TimeZone.current
             
-                let stmt = try db.prepare("INSERT INTO sessions (data, starttime) VALUES (?, ?)")
-                try stmt.run(session.data, formatter.string(from: session.starttime))
+                let stmt = try db.prepare("INSERT INTO sessions (id, data, starttime) VALUES (?, ?, ?)")
+                try stmt.run(session.id, session.data, formatter.string(from: session.starttime))
                 return db.lastInsertRowid
             } catch {
                 print("ERROR: \(error)")
@@ -35,13 +36,13 @@ extension DB {
             return nil
         }
         
-        func getSession(id: Int64) -> Session? {
+        func getSession(id: String) -> Session? {
             do {
                 let db = try Connection(fileName())
                 let query = "SELECT id, data, starttime FROM sessions WHERE id = \(id)"
                 for row in try db.prepare(query) {
                     let dateFormatter = ISO8601DateFormatter()
-                    dateFormatter.timeZone = TimeZone.current
+//                    dateFormatter.timeZone = TimeZone.current
                     
                     let starttimeString = row[2] as? String
                     guard let starttime = dateFormatter.date(from: starttimeString!) else {
@@ -49,8 +50,8 @@ extension DB {
                     }
         
                     let session = Session(
-                        id: row[0] as? Int64,
-                        data: (row[2] as? String)!,
+                        id: (row[0] as? String)!,
+                        data: (row[1] as? String)!,
                         starttime: starttime
                     )
                     return session
@@ -67,7 +68,7 @@ extension DB {
             do {
                 let db = try Connection(fileName())
                 let dateFormatter = ISO8601DateFormatter()
-                dateFormatter.timeZone = TimeZone.current
+//                dateFormatter.timeZone = TimeZone.current
                 
                 for row in try db.prepare("SELECT id, data, starttime FROM sessions") {
                     let starttimeString = row[2] as? String
@@ -76,8 +77,8 @@ extension DB {
                     }
                     
                     let session = Session(
-                        id: row[0] as? Int64,
-                        data: (row[2] as? String)!,
+                        id: (row[0] as? String)!,
+                        data: (row[1] as? String)!,
                         starttime: starttime
                     )
                     sessions.append(session)
@@ -119,7 +120,7 @@ extension DB {
             let sessions = Table("sessions")
 
             let command = sessions.create { t in
-                t.column(id, primaryKey: .autoincrement)
+                t.column(id, primaryKey: true)
                 t.column(data)
                 t.column(starttime)
             }
@@ -138,20 +139,27 @@ func testDB() {
 
     dataAccess.initTables()
     
-    var rowId = dataAccess.createSession(session: DB.Session(id: nil as Int64?, data: "johndoe@example.com", starttime: Date()))
+    let msession = Models.Session(starttime: Date())
+    msession.addShot(shot: Models.Shot(time: Date(), angle: 0.0, distance: 0.5, score: 5))
+    msession.finish(finishtime: Date())
+    let data = msession.toJson()
+    var rowId = dataAccess.createSession(session: DB.Session(id: "0", data: data, starttime: Date()))
     print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: DB.Session(id: nil, data: "emil@example.com", starttime: Date()))
+    rowId = dataAccess.createSession(session: DB.Session(id: "1", data: data, starttime: Date()))
     print("New session created with ID: \(rowId!)")
-    rowId = dataAccess.createSession(session: DB.Session(id: nil, data: "susan@example.com", starttime: Date()))
+    rowId = dataAccess.createSession(session: DB.Session(id: "2'", data: data, starttime: Date()))
     print("New session created with ID: \(rowId!)")
 
-    let session = dataAccess.getSession(id: 2)!
-    print("Found session: \(session.id!)  - \(session.data) \(session.starttime)")
-
+    let session = dataAccess.getSession(id: "0")!
+    print("Found session: \(session.id)  - \(session.data) \(session.starttime)")
+    
+//    print(session.data)
+    let newSession = Models.Session.fromJson(json: session.data)
+    print(newSession!.toJson())
     let sessions = dataAccess.getAllSessions()
     for session in sessions {
         print(session.toString())
-        print("Session: \(session.id!)  - \(session.data) \(session.starttime)")
+        print("Session: \(session.id)  - \(session.starttime)")
     }
     
 //    dataAccess.dropTables()

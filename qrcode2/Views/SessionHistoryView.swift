@@ -10,7 +10,7 @@ import SwiftUI
 // Model for Session
 struct SessionItem: Identifiable {
     let id = UUID()
-    let session: DB.Session
+    let session: Models.Session
 }
 
 // Main ContentView
@@ -26,7 +26,7 @@ struct SessionHistoryView: View {
         let sessions = dataAccess.getAllSessions()
         for session in sessions {
             let sessionItem = SessionItem(
-                session: session
+                session: Models.Session.fromJson(json: session.data)!
 //                title: formatDateToLocalTime(date: session.starttime,
 //                                             format: "yyyy-MM-dd HH:mm"),
 //                description: "Score: 32  Average: 8.2"
@@ -49,10 +49,10 @@ struct SessionHistoryView: View {
             List(sessions) { session in
                 NavigationLink(destination: SessionDetailView(session: session)) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm"))
+                        Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm a"))
                             .font(.headline)
 
-                        Text("Score: 32  Average: 8.2") // Replace with actual session details if needed
+                        Text("Score: \(session.session.score)") // Replace with actual session details if needed
                             .font(.subheadline)
                             .foregroundColor(.gray)
                     }
@@ -72,8 +72,11 @@ struct SessionDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm"))
+            
+            Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm a"))
                 .font(.largeTitle)
+                .bold()
+            Text(formatDateToLocalTime(date: session.session.finishtime!, format: "yyyy-MM-dd HH:mm a"))
                 .bold()
 
 //            Text(session.session.name)

@@ -43,6 +43,8 @@ extension Models {
                 let formatter = DateFormatter()
                 formatter.dateFormat = TIME_FORMAT
                 formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.timeZone = TimeZone(abbreviation: "UTC") // Ensures UTC time zone
+
                 let dateString = formatter.string(from: date)
                 var container = encoder.singleValueContainer()
                 try container.encode(dateString)
@@ -57,6 +59,35 @@ extension Models {
             }
         }
         
+        class func fromJson(json: String) -> Session? {
+            do {
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .custom { decoder -> Date in
+                    let container = try decoder.singleValueContainer()
+                    let dateString = try container.decode(String.self)
+                    
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = TIME_FORMAT // Ensure TIME_FORMAT matches the encoder
+                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                    formatter.timeZone = TimeZone(abbreviation: "UTC") // Ensures UTC time zone
+                    
+                    if let date = formatter.date(from: dateString) {
+                        return date
+                    } else {
+                        throw DecodingError.dataCorruptedError(
+                            in: container,
+                            debugDescription: "Cannot decode date string \(dateString)"
+                        )
+                    }
+                }
+                
+                let decodedSession = try decoder.decode(Session.self, from: json.data(using: .utf8)!)
+                return decodedSession
+            } catch {
+                print("Error decoding JSON: \(error)")
+            }
+            return nil
+        }
     }
      
 }

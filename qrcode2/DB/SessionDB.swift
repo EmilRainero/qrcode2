@@ -10,11 +10,11 @@ import Foundation
 extension DB {
     
     class Session {
-        var id: Int64?
+        var id: String
         var data: String
         var starttime: Date
         
-        init(id: Int64?, data: String, starttime: Date) {
+        init(id: String, data: String, starttime: Date) {
             self.id = id
             self.data = data
             self.starttime = starttime
