@@ -48,6 +48,7 @@ class SessionUI: Identifiable {
             shotUI.time = shot.time
             shotUI.position = shot.position
             shotUI.score = shot.score
+            shotUI.allShots = shot.allShots
             result.shots.append(shotUI)
         }
         return result
@@ -78,23 +79,33 @@ struct SessionHistoryView: View {
     }
 
     var body: some View {
-        NavigationView {
-            List(sessions) { session in
-                NavigationLink(destination: SessionDetailView(session: session)) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
-                            .font(.headline)
+        NavigationView { // Keep the NavigationView here
+            VStack(alignment: .leading) { // Use a VStack
+                if sessions.isEmpty {
+                    Text("No sessions.")
+                        .font(.largeTitle)
+                        .bold()
+                        .padding(.top) // Add some top padding
+                    Spacer() // Push content to top
+                } else {
+                    List(sessions) { session in
+                        NavigationLink(destination: SessionDetailView(session: session)) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
+                                    .font(.headline)
 
-                        Text("Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                        
+                                Text("Shots: \(session.shots.count)  Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.vertical, 5)
+                        }
                     }
-                    .padding(.vertical, 5)
                 }
-            }
-        }
-        .navigationTitle("History")
+            } // End of VStack
+            
+        } // End of NavigationView
+        .navigationTitle("History") // Set the title here!
         .navigationBarTitleDisplayMode(.inline)
     }
     
@@ -112,7 +123,7 @@ struct SessionDetailView: View {
                     Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
                         .font(.largeTitle)
                         .bold()
-                    Text("Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
+                    Text("Shots: \(session.shots.count)  Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
                         .font(.body)
                     
                     Text("Finish time: \(formatDateToLocalTime(date: session.finishtime!, format: "yyyy-MM-dd HH:mm a"))")
@@ -148,8 +159,26 @@ struct ShotRowView: View {
     let sessionStart: Double
 
     var body: some View {
-        HStack {
-            Text("Shot \(shot.time.timeIntervalSince1970 - sessionStart) \(shot.score) \(shot.position.angle) \(shot.position.distance)")
+        VStack {
+            let timeDiff = shot.time.timeIntervalSince1970 - sessionStart
+            let message = calculateMessage(shot: shot) // Call a function for clarity
+
+            Text(String(format: "Time: +%.1fs  Score: %d  Angle: %d  Dist: %.1f",
+                        timeDiff, shot.score, (Int(shot.position.angle) + 360) % 360, shot.position.distance))
+            Text(message)
         }
+    }
+
+    // Separate function to calculate the message
+    private func calculateMessage(shot: ShotUI) -> String {
+        guard shot.allShots.count > 1 else { return "" } // Guard against < 2 shots
+
+        // Safely access the first and last elements
+        guard let firstShot = shot.allShots.first, let lastShot = shot.allShots.last else {
+            return "Cant" // Handle potential nil values
+        }
+
+        let result = firstShot.position.vectorDifference(lastShot.position) // Use first and last
+        return String(format: "A: %d  D: %.1f", Int(result.angle), result.distance)
     }
 }

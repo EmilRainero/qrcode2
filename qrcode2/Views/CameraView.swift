@@ -157,7 +157,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var frameRate: Int32 = 30
     @Published var calibrationTime: Int32 = 15 * 30
     @Published var delayStartTime: Int32 = 5 * 30
-    @Published var sessionTime: Int32 = 60 * 30
+    @Published var sessionTime: Int32 = 30 * 30
     @Published var score: Int32 = 0
     @Published var totalScore: Int32 = 0
     @Published var shotsFired: Int32 = 0
@@ -746,6 +746,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         if appStateMachine.currentState == .runningSession && frameCount == sessionTime {
 //            self.detectedQRCodes = []
             self.session!.finish(finishtime: Date())
+            let dataAccess = DB.DataAccess("db.sqlite3")
+            let _ = dataAccess.createSession(session: DB.Session(id: UUID().uuidString, data: self.session!.toJson(), starttime: self.session!.starttime))
             LoggerManager.log.info("FINISHED")
 
 //            LoggerManager.log.info(self.session!.toJson())

@@ -13,13 +13,9 @@ extension Models {
     struct TimeVector: Codable {
         var time: Date
         var position: Vector
-        //    var angle: Double
-        //    var distance: Double
         
         init(time: Date, angle: Double, distance: Double) {
             self.time = time
-            //        self.angle = angle
-            //        self.distance = distance
             self.position = Vector(angle: angle, distance: distance)
         }
         
@@ -43,8 +39,6 @@ extension Models {
     class Shot: Codable {
         var time: Date
         var allShots: [TimeVector] = []
-        //    var angle: Double
-        //    var distance: Double
         var position: Vector
         var score: Int32
         
@@ -52,8 +46,6 @@ extension Models {
             self.time = time
             self.allShots = []
             self.position = Vector(angle: angle, distance: distance)
-            //        self.angle = angle
-            //        self.distance = distance
             self.score = score
             self.addAdditionalShots(time: time, angle: angle, distance: distance)
         }

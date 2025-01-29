@@ -21,7 +21,7 @@ extension Models {
             return (x, y)
         }
         
-        func vectorDifference(other: Vector) -> Vector {
+        func vectorDifference(_ other: Vector) -> Vector {
             // Convert both vectors to Cartesian coordinates
             let cartesian1 = self.toCartesian()
             let cartesian2 = other.toCartesian()
@@ -31,9 +31,12 @@ extension Models {
             let diffY = cartesian1.y - cartesian2.y
             
             // Convert the result back to polar coordinates
-            let angle = atan2(diffY, diffX)
+            var angle = atan2(diffY, diffX)
             let distance = sqrt(diffX * diffX + diffY * diffY)
-            
+            angle = angle * 2 * Double.pi
+            if angle < 0 {
+                angle = angle + 360.0
+            }
             return Vector(angle: angle, distance: distance)
         }
     }
@@ -49,9 +52,13 @@ extension Models {
         let diffY = cartesian1.y - cartesian2.y
         
         // Convert the result back to polar coordinates
-        let angle = atan2(diffY, diffX)
+        var angle = atan2(diffY, diffX)
         let distance = sqrt(diffX * diffX + diffY * diffY)
         
+        angle = angle * 2 * Double.pi
+        if angle < 0 {
+            angle = angle + 360.0
+        }
         return Vector(angle: angle, distance: distance)
     }
     
