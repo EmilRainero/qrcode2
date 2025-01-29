@@ -70,7 +70,7 @@ extension DB {
                 let dateFormatter = ISO8601DateFormatter()
 //                dateFormatter.timeZone = TimeZone.current
                 
-                for row in try db.prepare("SELECT id, data, starttime FROM sessions") {
+                for row in try db.prepare("SELECT id, data, starttime FROM sessions ORDER BY starttime DESC") {
                     let starttimeString = row[2] as? String
                     guard let starttime = dateFormatter.date(from: starttimeString!) else {
                         continue // Skip rows with invalid starttime
@@ -145,33 +145,42 @@ func testDB() {
         let finishdate = startdate.addingTimeInterval(75)
         
         let msession = Models.Session(starttime: startdate)
-        msession.addShot(shot: Models.Shot(time: Date(), angle: 0.0, distance: 0.5, score: 5))
+        var shotDate = currentDate.addingTimeInterval(1)
+        for _ in 0...5 {
+            msession.addShot(shot: Models.Shot(time: shotDate, angle: 0.0, distance: 0.5, score: 5))
+            shotDate = shotDate.addingTimeInterval(1)
+        }
         msession.finish(finishtime: finishdate)
-        let rowId = dataAccess.createSession(session: DB.Session(id: "\(i)", data: msession.toJson(), starttime: Date()))
-        print("New session created with ID: \(rowId!)")
+        let rowId = dataAccess.createSession(session: DB.Session(id: "\(i)", data: msession.toJson(), starttime: startdate))
+//        print("New session created with ID: \(rowId!)")
         
         currentDate = currentDate.addingTimeInterval(60)
     }
-//    var msession = Models.Session(starttime: startdate)
-//    msession.addShot(shot: Models.Shot(time: Date(), angle: 0.0, distance: 0.5, score: 5))
-//    msession.finish(finishtime: finishdate)
-//    let data = msession.toJson()
-//    var rowId = dataAccess.createSession(session: DB.Session(id: "0", data: data, starttime: Date()))
+    
+    currentDate = currentDate.addingTimeInterval(-24 * 3600)
+    let finishdate = currentDate.addingTimeInterval(75)
+
+    var msession = Models.Session(starttime: currentDate)
+    msession.addShot(shot: Models.Shot(time: finishdate, angle: 0.0, distance: 0.5, score: 5))
+    msession.finish(finishtime: finishdate)
+    var rowId = dataAccess.createSession(session: DB.Session(id: "6", data: msession.toJson(), starttime: currentDate))
+    
 //    print("New session created with ID: \(rowId!)")
 //    rowId = dataAccess.createSession(session: DB.Session(id: "1", data: data, starttime: Date()))
 //    print("New session created with ID: \(rowId!)")
 //    rowId = dataAccess.createSession(session: DB.Session(id: "2'", data: data, starttime: Date()))
 //    print("New session created with ID: \(rowId!)")
 
-    let session = dataAccess.getSession(id: "1")!
-    print("Found session: \(session.id)  - \(session.data) \(session.starttime)")
+//    let session = dataAccess.getSession(id: "1")!
+//    print("Found session: \(session.id)  - \(session.data) \(session.starttime)")
     
 //    print(session.data)
-    let newSession = Models.Session.fromJson(json: session.data)
-    print(newSession!.toJson())
+//    let newSession = Models.Session.fromJson(json: session.data)
+//    print(newSession!.toJson())
+    
     let sessions = dataAccess.getAllSessions()
     for session in sessions {
-        print(session.toString())
+//        print(session.toString())
         print("Session: \(session.id)  - \(session.starttime)")
     }
     

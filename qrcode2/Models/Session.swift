@@ -43,8 +43,6 @@ extension Models {
             return average
         }
         
-        
-        
         func toJson() -> String {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted

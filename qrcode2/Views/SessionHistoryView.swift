@@ -7,16 +7,63 @@
 
 import SwiftUI
 
-// Model for Session
-struct SessionItem: Identifiable {
+class ShotUI: Identifiable {
     let id = UUID()
-    let session: Models.Session
+    var time: Date
+    var allShots: [Models.TimeVector] = []
+    var position: Models.Vector
+    var score: Int32
+    
+    init() {
+        self.time = Date()
+        self.allShots = []
+        self.position = Models.Vector(angle: 0, distance: 0)
+        self.score = 0
+    }
 }
 
-// Main ContentView
+// Model for Session
+class SessionUI: Identifiable {
+    let id = UUID()
+    var starttime: Date
+    var finishtime: Date? = nil
+    var shots: [ShotUI]
+    var score: Int32
+    
+    init() {
+        self.starttime = Date()
+        self.finishtime = nil
+        self.shots = []
+        self.score = 0
+    }
+    
+    class func toSessionUI(session: Models.Session) -> SessionUI {
+        let result = SessionUI()
+        result.starttime = session.starttime
+        result.finishtime = session.finishtime
+        result.score = session.score
+        result.shots = []
+        for shot in session.shots {
+            let shotUI = ShotUI()
+            shotUI.time = shot.time
+            shotUI.position = shot.position
+            shotUI.score = shot.score
+            result.shots.append(shotUI)
+        }
+        return result
+    }
+    
+    func shotAverage() -> Double {
+        guard !shots.isEmpty else { return 0.0 }
+        
+        let average = Double(self.score) / Double(self.shots.count)
+        return average
+    }
+}
+
 struct SessionHistoryView: View {
     @Binding var navigationPath: NavigationPath
-    var sessions: [SessionItem]
+    var sessions: [SessionUI]
 
     init(navigationPath: Binding<NavigationPath>) {
         self._navigationPath = navigationPath
@@ -25,23 +72,9 @@ struct SessionHistoryView: View {
         self.sessions = []
         let sessions = dataAccess.getAllSessions()
         for session in sessions {
-            let sessionItem = SessionItem(
-                session: Models.Session.fromJson(json: session.data)!
-//                title: formatDateToLocalTime(date: session.starttime,
-//                                             format: "yyyy-MM-dd HH:mm"),
-//                description: "Score: 32  Average: 8.2"
-            )
+            let sessionItem = SessionUI.toSessionUI(session: Models.Session.fromJson(json: session.data)!)
             self.sessions.append(sessionItem)
         }
-//        self.sessions = [
-//            SessionItem(title: "SwiftUI Basics", description: "Learn the basics of SwiftUI."),
-//            SessionItem(title: "Advanced SwiftUI", description: "Explore advanced concepts in SwiftUI."),
-//            SessionItem(title: "Combine Framework", description: "Introduction to the Combine framework."),
-//            SessionItem(title: "Core Data", description: "Managing data persistence with Core Data.")
-//        ]
-        
-        // Additional initialization logic (if needed)
-        print("SessionHistoryView initialized with \(sessions.count) sessions.")
     }
 
     var body: some View {
@@ -49,12 +82,13 @@ struct SessionHistoryView: View {
             List(sessions) { session in
                 NavigationLink(destination: SessionDetailView(session: session)) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm a"))
+                        Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
                             .font(.headline)
 
-                        Text("Score: \(session.session.score)  Average: \(String(format: "%.1f", session.session.shotAverage()))") // Replace with actual session details if needed
+                        Text("Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
                             .font(.subheadline)
                             .foregroundColor(.gray)
+                        
                     }
                     .padding(.vertical, 5)
                 }
@@ -66,33 +100,56 @@ struct SessionHistoryView: View {
     
 }
 
-// Session Detail View
 struct SessionDetailView: View {
-    let session: SessionItem
+    let session: SessionUI
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        List {
+            // Display session details at the top
+            Section(header: Text("Session Details")) {
+                VStack(alignment: .leading, spacing: 16) {
+                    
+                    Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
+                        .font(.largeTitle)
+                        .bold()
+                    Text("Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
+                        .font(.body)
+                    
+                    Text("Finish time: \(formatDateToLocalTime(date: session.finishtime!, format: "yyyy-MM-dd HH:mm a"))")
+                        .font(.body)
+                    
+                    Text("Duration: \(computeDuration(start: session.starttime, finish: session.finishtime!))")
+                        .font(.body)
+                    
+                    Spacer()
+                }
+            }
             
-            Text(formatDateToLocalTime(date: session.session.starttime, format: "yyyy-MM-dd HH:mm a"))
-                .font(.largeTitle)
-                .bold()
-            Text("Score: \(session.session.score)  Average: \(String(format: "%.1f", session.session.shotAverage()))") // Replace with actual session details if needed
-                .font(.body)
-
-            Text("Finish time: \(formatDateToLocalTime(date: session.session.finishtime!, format: "yyyy-MM-dd HH:mm a"))")
-                .font(.body)
-
-            Text("Duration: \(computeDuration(start: session.session.starttime, finish: session.session.finishtime!))")
-                .font(.body)
-            
-//            Text(session.session.name)
-//                .font(.body)
-//                .foregroundColor(.gray)
-
-            Spacer()
+            // Display the list of shots
+            Section(header: Text("Shots")) {
+                if session.shots.isEmpty {
+                    Text("No shots recorded for this session.")
+                        .font(.body)
+                } else {
+                    ForEach(session.shots) { shot in
+                        ShotRowView(shot: shot, sessionStart: session.starttime.timeIntervalSince1970)
+                    }
+                }
+            }
         }
-        .padding()
+        .listStyle(InsetGroupedListStyle()) // Use a grouped list style for better readability
         .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct ShotRowView: View {
+    let shot: ShotUI
+    let sessionStart: Double
+
+    var body: some View {
+        HStack {
+            Text("Shot \(shot.time.timeIntervalSince1970 - sessionStart) \(shot.score) \(shot.position.angle) \(shot.position.distance)")
+        }
     }
 }
