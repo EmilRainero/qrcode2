@@ -15,6 +15,8 @@ struct MainView: View {
     @State private var navigationPath = NavigationPath()  // Define a navigation path
     @State public var appStateMachine = AppStateMachine(initialState: .initial)
 
+    let messageSender = MessageSender(dbPath: "messages.db") // Instance property
+
     var body: some View {
         NavigationStack(path: $navigationPath) {
             VStack {
@@ -98,7 +100,7 @@ struct MainView: View {
         .onAppear {
             deleteAllTemporaryFiles()
             testDB()
-            
+            testMessageSender(messageSender: messageSender)
             // Navigate to CameraView immediately when the view appears - DEBUGGING
 //            navigationPath.append("start")
         }

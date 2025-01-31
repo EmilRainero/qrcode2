@@ -12,7 +12,6 @@ extension DB {
     
     class DataAccess {
         var databaseFilename = nil as String?
-//        let id = SQLite.Expression<Int64>("id")
         let id = SQLite.Expression<String>(value: "id")
         let data = SQLite.Expression<String>(value: "data")
         let starttime = SQLite.Expression<Date>("starttime")
@@ -24,9 +23,7 @@ extension DB {
         func createSession(session: Session) -> Int64? {
             do {
                 let db = try Connection(fileName())
-                let formatter = ISO8601DateFormatter()
-//                formatter.timeZone = TimeZone.current
-            
+                let formatter = ISO8601DateFormatter()            
                 let stmt = try db.prepare("INSERT INTO sessions (id, data, starttime) VALUES (?, ?, ?)")
                 try stmt.run(session.id, session.data, formatter.string(from: session.starttime))
                 return db.lastInsertRowid
