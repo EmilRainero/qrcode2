@@ -47,7 +47,7 @@ class Server {
         self.errorMessage = ""
 
         // Make the POST request to the login endpoint
-        client.post(endpoint: "/login", headers: headers, body: bodyData) { result in
+        client.post(endpoint: "/api/login", headers: headers, body: bodyData) { result in
             switch result {
             case .success(let data):
                 // Parse the response data

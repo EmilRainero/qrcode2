@@ -126,3 +126,66 @@ func applyThreshold(to image: CIImage, threshold: CGFloat) -> CIImage? {
     return clampFilter?.outputImage
 }
 
+func convertCIImageToUIImage(_ ciImage: CIImage) -> UIImage? {
+    // Create a CIContext
+    let context = CIContext(options: nil)
+    
+    // Render the CIImage to a CGImage
+    if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+        // Convert the CGImage to a UIImage
+        return UIImage(cgImage: cgImage)
+    }
+    
+    // Return nil if conversion fails
+    return nil
+}
+
+func cropMat(_ src: Mat, toRect rect: Rect) -> Mat {
+    // Ensure the rectangle is within the bounds of the source Mat
+    let srcWidth = src.cols()
+    let srcHeight = src.rows()
+
+    if rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= srcWidth && rect.y + rect.height <= srcHeight {
+        return src.submat(roi: rect) // Crop the Mat using submat
+    } else {
+        print("Crop rectangle is out of bounds.")
+        return src.clone() // Return a copy of the original Mat if out of bounds
+    }
+}
+
+func cropImage(_ image: UIImage, toRect rect: CGRect) -> UIImage? {
+    // Ensure the rectangle is within the bounds of the image's pixel dimensions
+    let scaledRect = CGRect(
+        x: rect.origin.x * image.scale,
+        y: rect.origin.y * image.scale,
+        width: rect.size.width * image.scale,
+        height: rect.size.height * image.scale
+    )
+
+    // Check if the crop rectangle is valid within the image bounds
+    guard let croppedCGImage = image.cgImage?.cropping(to: scaledRect) else {
+        print("Failed to crop image.")
+        return nil
+    }
+
+    // Create and return a new UIImage from the cropped CGImage
+    return UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
+}
+
+fileprivate func writeMaskToFile(_ dilatedMat: Mat, filename: String) {
+    // Ensure the dilatedMat is continuous in memory and properly aligned
+    let continuousMat = dilatedMat.clone()
+    
+    // Convert single-channel dilatedMat to 4-channel RGBA (which is compatible with UIImage)
+    let colorDilatedMat = Mat()
+    Imgproc.cvtColor(src: continuousMat, dst: colorDilatedMat, code: ColorConversionCodes.COLOR_GRAY2RGBA)
+    
+    // Save the image
+    if let dilatedImage = UIImage(mat: colorDilatedMat) {
+        let fileURL3 = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        _ = saveUIImage(dilatedImage, to: fileURL3)
+    } else {
+        print("Failed to convert Mat to UIImage.")
+    }
+}
+

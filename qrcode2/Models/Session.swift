@@ -108,7 +108,7 @@ extension Models {
                 cgContext.setLineJoin(.miter)
                 cgContext.setLineCap(.square)
                 
-                let maxRadius = size.width / 2.0 - 10.0
+                let maxRadius = size.width / 2.0 / 2.0
                 let center = CGPoint(x: CGFloat(size.width/2), y: CGFloat(size.height/2))
                 
                 cgContext.setFillColor(strokeColor.cgColor)
@@ -134,10 +134,10 @@ extension Models {
                     
 //                    print("\(angle), \(distance)")
                     
-                    var point = polarToCartesian(angle: angle - 90.0, distance: distance)
-                    point = CGPoint(x: point.x * maxRadius + center.x, y: point.y * maxRadius + center.y)
+                    var point = polarToCartesian(angle: angle, distance: distance)
+                    point = CGPoint(x: point.x * maxRadius + center.x, y: size.height - (point.y * maxRadius + center.y))
                     
-//                    print("\(angle), \(distance)  \(point)")
+//                    print("createTargetImageWithShots  \(index + 1)  \(shot.score), \(angle), \(distance)  \(point)")
 
                     let shotRadius = 15.0
                     let circleRect = CGRect(x: point.x - shotRadius, y: point.y - shotRadius, width: shotRadius * 2, height: shotRadius * 2)

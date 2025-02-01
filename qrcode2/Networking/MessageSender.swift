@@ -64,8 +64,8 @@ class MessageSender {
     }
 
     func sendMessage(message: String) {
-        let timestamp = Date().timeIntervalSince1970
-
+        print("sendMessage \(message)")
+        
         weak var weakSelf = self
         dbQueue.async { [weak weakSelf] in
             guard let self = weakSelf, let db = self.db else {
@@ -77,7 +77,7 @@ class MessageSender {
                 let formatter = ISO8601DateFormatter()
                 let stmt = try db.prepare("INSERT INTO messages (message, timestamp, sent) VALUES (?, ?, ?)")
                 try stmt.run(message, formatter.string(from: Date()), 0)
-                let rowid =  db.lastInsertRowid
+//                let rowid =  db.lastInsertRowid
                 
 //                print("Message inserted successfully with ID: \(rowid), Message: \(message)")
 //                self.printTableContents()

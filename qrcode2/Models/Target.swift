@@ -57,20 +57,30 @@ extension Models {
             let circle = Models.Circle(x: x, y: y, radius: radius)
             for i in 0..<self.rings.count {
                 let ellipse = self.rings[i].ellipse
-                if Models.isCircleOverlappingEllipse(circle: circle, ellipse: ellipse) {
+                let lastEllipse = (i == self.rings.count - 1)
+                if Models.isCircleOverlappingEllipse(circle: circle, ellipse: ellipse) || lastEllipse {
                     // Compute the distance
                     let dx = x - ellipse.centerx
                     let dy = y - ellipse.centery
                     
                     let distanceToPoint = sqrt(dx * dx + dy * dy)
                     let outerEllipse = self.rings[self.rings.count-1].ellipse  // outermost ellipse
-                    let angle = atan2(dy, dx) * (180.0 / .pi)
+                    var angle = atan2(dy, dx) * (180.0 / .pi)
                     
                     let distanceToEdge = outerEllipse.distanceToEdge(angle: angle)
                     let distance = distanceToPoint / distanceToEdge  // percent of distance to edge of outer ellipse
                     //                LoggerManager.log.info("dx: \(dx)  dy: \(dy)  distanceToPoint: \(distanceToPoint)  distanceToEdge: \(distanceToEdge)  distance: \(distance)  angle: \(angle)")
+                    if lastEllipse && distance > 1.0 {
+                        print("outside \(distance)  \(angle)")
+                        if angle < 0.0 {
+                            angle = angle + 360.0
+                        }
+                        return (score: 0, distance: distance, angle: angle)
+                    }
+                    print("inside \(distance)  \(angle)")
                     return (score: Int32(self.rings[i].score), distance: distance, angle: angle)
                 }
+                
             }
             return (score: 0, distance: -1.0, angle: 0.0) // Return 0.0 as angle if no overlap is found
         }
