@@ -12,13 +12,21 @@ class MessageSender {
 
     private let messageQueue: DispatchQueue
     private let dbPath: String
+    private let url: String
     private var db: Connection?
     private let dbQueue: DispatchQueue
+    private let authToken: String?
 
-    init(dbPath: String) {
+    init(dbPath: String, url: String) {
         let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let fullPath = documentDirectory.appendingPathComponent(dbPath).path
+        self.url = url
         
+        if let token = KeychainManager.shared.retrieveToken(forKey: "authToken") {
+            self.authToken = token
+        } else {
+            self.authToken = nil
+        }
         self.dbPath = fullPath
         self.messageQueue = DispatchQueue(label: "com.example.messageQueue", qos: .userInitiated)
         self.dbQueue = DispatchQueue(label: "com.example.dbQueue")
@@ -215,6 +223,8 @@ class MessageSender {
 //        }
 //
 //        task.resume()
+        
+        print("SEND URL: \(self.url)  command: \(message)")
         let value = Double.random(in: 0.0...1.0)
         if value < 0.8 {
             completion(true)

@@ -162,7 +162,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var totalScore: Int32 = 0
     @Published var shotsFired: Int32 = 0
 
-    let messageSender = MessageSender(dbPath: "messages.db") // Instance property
+    let messageSender = MessageSender(dbPath: "messages.db", url: "http://192.168.5.6:5001/updates") // Instance property
 
     private var detectedQRCodes: [Models.DetectedQRCode]? = []
     private var laserSpots: [Models.DetectedQRCode]?
