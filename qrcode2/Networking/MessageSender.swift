@@ -51,14 +51,6 @@ class MessageSender {
                     fatalError("Error creating table: \(error)")
                 }
                 self.deleteAllMessages()
-//                try self.db?.run("""
-//                    CREATE TABLE IF NOT EXISTS messages (
-//                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-//                        message TEXT NOT NULL,
-//                        timestamp REAL NOT NULL,
-//                        sent INTEGER NOT NULL DEFAULT 0
-//                    )
-//                """)
             } catch {
                 fatalError("Failed to open database: \(error)")
             }

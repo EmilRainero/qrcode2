@@ -33,6 +33,20 @@ extension DB {
             return nil
         }
         
+        func isTableCreated(_ tableName: String) -> Bool {
+            do {
+                let db = try Connection(fileName())
+                let query = "SELECT name FROM sqlite_master WHERE type='table' AND name='\(tableName)';"
+
+                for row in try db.prepare(query) {
+                    return true
+                }
+            } catch {
+                print("ERROR: \(error)")
+            }
+            return false
+        }
+        
         func getSession(id: String) -> Session? {
             do {
                 let db = try Connection(fileName())
@@ -114,6 +128,10 @@ extension DB {
         }
         
         private func initSessionsTable(db: Connection) throws {
+            
+            if self.isTableCreated("sessions") {
+                return
+            }
             let sessions = Table("sessions")
 
             let command = sessions.create { t in
@@ -130,11 +148,13 @@ extension DB {
 
 
 func testDB() {
+    let dataAccess = DB.DataAccess("db.sqlite3")
+    dataAccess.initTables()
+
     return
 
-    let dataAccess = DB.DataAccess("db.sqlite3")
+//    let dataAccess = DB.DataAccess("db.sqlite3")
     dataAccess.dropTables()
-    dataAccess.initTables()
     
     var currentDate = Date() // Current date and time
     for i in 1...5 {
