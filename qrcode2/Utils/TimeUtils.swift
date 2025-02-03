@@ -13,6 +13,17 @@ func formatDateToLocalTime(date: Date, format: String = "yyyy-MM-dd HH:mm:ss") -
     return formatter.string(from: date)
 }
 
+func formatDateToUTCTime(date: Date, format: String = "yyyy-MM-dd HH:mm:ss") -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = TIME_FORMAT
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone(abbreviation: "UTC") // Ensures UTC time zone
+
+    let dateString = formatter.string(from: date)
+    
+    return dateString
+}
+
 func computeDuration(start: Date, finish: Date) -> String {
     let duration = finish.timeIntervalSince(start) // Duration in seconds
 

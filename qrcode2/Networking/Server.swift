@@ -11,9 +11,17 @@ class Server {
     private let baseURL: String
     public var token: String? = nil
     public var errorMessage: String = ""
+    public var headers: [String: String] = [:]
 
-    public init(baseURL: String) {
+    public init(baseURL: String, token: String?) {
         self.baseURL = baseURL
+        self.token = token
+        if token != nil {
+            self.headers = [
+                "Authorization": token!,
+                "Content-Type": "application/json"
+            ]
+        }
     }
     
     func getLoginToken(username: String, password: String) -> Bool {
@@ -75,68 +83,113 @@ class Server {
     }
     
     func postRequest(endpoint: String, body: String, headers: [String: String] = ["Content-Type": "application/json"]) -> (success: Bool, response: [String: Any]?, errorMessage: String?) {
-            let client = RestClient(baseURL: self.baseURL, networkPreference: .wifiWithFallback)
-            
-            // Convert to Data
-            guard let bodyData = body.data(using: .utf8) else {
-                return (false, nil, "Failed to encode JSON data")
-            }
-            
-            // Semaphore for synchronous behavior
-            let semaphore = DispatchSemaphore(value: 0)
-            var responseDict: [String: Any]? = nil
-            var isSuccess = false
-            var errorMessage: String? = nil
-            
-            client.post(endpoint: endpoint, headers: headers, body: bodyData) { result in
-                switch result {
-                case .success(let data):
-                    if let jsonResponse = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                        responseDict = jsonResponse
-                        isSuccess = true
-                    } else {
-                        errorMessage = "Failed to parse response"
-                    }
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                }
-                semaphore.signal()
-            }
-            
-            // Wait for the request to complete
-            semaphore.wait()
-            return (isSuccess, responseDict, errorMessage)
+        let client = RestClient(baseURL: self.baseURL, networkPreference: .wifiWithFallback)
+        
+        // Convert to Data
+        guard let bodyData = body.data(using: .utf8) else {
+            return (false, nil, "Failed to encode JSON data")
         }
+        
+        // Semaphore for synchronous behavior
+        let semaphore = DispatchSemaphore(value: 0)
+        var responseDict: [String: Any]? = nil
+        var isSuccess = false
+        var errorMessage: String? = nil
+        
+        client.post(endpoint: endpoint, headers: headers, body: bodyData) { result in
+            switch result {
+            case .success(let data):
+                if let jsonResponse = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    responseDict = jsonResponse
+                    isSuccess = true
+                } else {
+                    errorMessage = "Failed to parse response"
+                }
+            case .failure(let error):
+                errorMessage = error.localizedDescription
+            }
+            semaphore.signal()
+        }
+        
+        // Wait for the request to complete
+        semaphore.wait()
+        return (isSuccess, responseDict, errorMessage)
+    }
 
+    func sendUpdates(body: String) -> (success: Bool, response: [String: Any]?, errorMessage: String?) {
+        let result = self.postRequest(endpoint: "/updates", body: body, headers: self.headers)
+        return result
+    }
+    
+    func generateStartSessionCommand(session: Models.Session) -> String? {
+        let command = [
+            "id": session.id,
+            "command": "new_session",
+            "start_time": formatDateToUTCTime(date: session.starttime)
+        ]
+        if let jsonData = try? JSONSerialization.data(withJSONObject: command, options: []),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            return jsonString
+        }
+        return nil
+    }
+    
+    func generateFinishSessionCommand(session: Models.Session) -> String? {
+        let command = [
+            "id": session.id,
+            "command": "end_session",
+            "finish_time": formatDateToUTCTime(date: session.finishtime!)
+        ]
+        if let jsonData = try? JSONSerialization.data(withJSONObject: command, options: []),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            return jsonString
+        }
+        return nil
+    }
+    
+    
+    func generateAddShotCommand(session: Models.Session, shot: Models.Shot) -> String? {
+        let command: [String : Any] = [
+            "session_id": session.id,
+            "command": "add_shot_to_session",
+            "timestamp": formatDateToUTCTime(date: shot.time),
+            "score": shot.score,
+            "all_shots": [],
+            "angle": shot.position.angle,
+            "distance": shot.position.distance
+        ]
+        if let jsonData = try? JSONSerialization.data(withJSONObject: command, options: []),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            return jsonString
+        }
+        return nil
+    }
 }
 
 func testPost() {
     let token = KeychainManager.shared.retrieveToken(forKey: "authToken")
-//    print(token!)
-    let server = Server(baseURL: "http://192.168.5.6:5001")
-    
-//    let x = server.getLoginToken(username: "emil.rainero@gmail.com", password: "a")
-//    print(x)
-    
-    let headers = [
-        "Authorization": token!,
-        "Content-Type": "application/json"
-    ]
-    let command = [
-        "id": UUID().uuidString,
-        "command": "new_session",
-        "start_time": "2021-01-01T12:00:00.000000Z"
-    ]
-    if let jsonData = try? JSONSerialization.data(withJSONObject: command, options: []),
-       let jsonString = String(data: jsonData, encoding: .utf8) {
-//        print(jsonString) // Prints the JSON string
+    let server = Server(baseURL: "http://192.168.5.6:5001", token: token)
         
-        let beforeTime = CFAbsoluteTimeGetCurrent()
-        let result = server.postRequest(endpoint: "/updates", body: jsonString, headers: headers)
-        let afterTime = CFAbsoluteTimeGetCurrent()
-        print("Time: \(afterTime - beforeTime)")
-        print(result)
-    }
+    let session = Models.Session(starttime: Date())
+    let new_session_command = server.generateStartSessionCommand(session: session)!
+    print(new_session_command)
+    let timer = Timer()
     
+    timer.start()
+    var result = server.sendUpdates(body: new_session_command)
+    print("Time: \(timer.stop())")
+    print(result)
     
+    let shot = Models.Shot(time: Date(), angle: 45.0, distance: 0.5, score: 5)
+    session.addShot(shot: shot)
+    let add_shot_command = server.generateAddShotCommand(session: session, shot: shot)!
+    print(add_shot_command)
+    result = server.sendUpdates(body: add_shot_command)
+    print(result)
+    
+    session.finish(finishtime: Date())
+    let finish_session_command = server.generateFinishSessionCommand(session: session)!
+    print(finish_session_command)
+    result = server.sendUpdates(body: finish_session_command)
+    print(result)
 }

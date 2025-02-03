@@ -93,7 +93,7 @@ struct LoginView: View {
         if username.isEmpty || password.isEmpty {
             loginError = "Please enter both username and password."
         } else {
-            let server = Server(baseURL: "http://192.168.5.6:5001")
+            let server = Server(baseURL: "http://192.168.5.6:5001", token: nil)
             if server.getLoginToken(username: username, password: password) {
                 loginError = nil
                 isLoggedIn = true
