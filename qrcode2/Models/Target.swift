@@ -69,7 +69,6 @@ extension Models {
                     
                     let distanceToEdge = outerEllipse.distanceToEdge(angle: angle)
                     let distance = distanceToPoint / distanceToEdge  // percent of distance to edge of outer ellipse
-                    //                LoggerManager.log.info("dx: \(dx)  dy: \(dy)  distanceToPoint: \(distanceToPoint)  distanceToEdge: \(distanceToEdge)  distance: \(distance)  angle: \(angle)")
                     if lastEllipse && distance > 1.0 {
                         print("outside \(distance)  \(angle)")
                         if angle < 0.0 {
@@ -77,7 +76,6 @@ extension Models {
                         }
                         return (score: 0, distance: distance, angle: angle)
                     }
-                    print("inside \(distance)  \(angle)")
                     return (score: Int32(self.rings[i].score), distance: distance, angle: angle)
                 }
                 

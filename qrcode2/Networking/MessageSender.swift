@@ -16,6 +16,7 @@ class MessageSender {
     private var db: Connection?
     private let dbQueue: DispatchQueue
     private let authToken: String?
+    public let server: Server?
 
     init(dbPath: String, url: String) {
         let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -30,6 +31,7 @@ class MessageSender {
         self.dbPath = fullPath
         self.messageQueue = DispatchQueue(label: "com.example.messageQueue", qos: .userInitiated)
         self.dbQueue = DispatchQueue(label: "com.example.dbQueue")
+        self.server = Server(baseURL: "http://192.168.5.6:5001", token: self.authToken)
 
         dbQueue.sync {
             do {
@@ -178,54 +180,27 @@ class MessageSender {
     }
 
     private func sendRESTRequest(message: String, completion: @escaping (Bool) -> Void) {
-//        let urlString = "YOUR_REST_API_ENDPOINT" // Replace with your endpoint
-//        guard let url = URL(string: urlString) else {
-//            print("Invalid URL")
-//            completion(false)
-//            return
-//        }
-//
-//        var request = URLRequest(url: url)
-//        request.httpMethod = "POST"
-//        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-//
-//        let parameters = ["message": message]
-//        guard let httpBody = try? JSONSerialization.data(withJSONObject: parameters) else {
-//            print("Error serializing JSON")
-//            completion(false)
-//            return
-//        }
-//        request.httpBody = httpBody
-//
-//        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-//            if let error = error {
-//                print("Error sending request: \(error)")
-//                completion(false)
-//                return
-//            }
-//
-//            if let httpResponse = response as? HTTPURLResponse,
-//               (200...299).contains(httpResponse.statusCode) {
-//                print("Message sent successfully")
-//                completion(true)
-//            } else {
-//                print("Request failed with status code: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
-//                completion(false)
-//            }
-//        }
-//
-//        task.resume()
-        
+      
         print("SEND URL: \(self.url)  command: \(message)")
-        let value = Double.random(in: 0.0...1.0)
-        if value < 0.8 {
-            completion(true)
+        let result = self.server!.sendUpdates(body: message)
+        if result.success {
             print("\(Date()) SENT \(message)")
         } else {
-            completion(false)
             print("\(Date()) FAILED TO SEND \(message)")
-
+            if result.errorMessage != nil {
+                print("Error: \(result)")
+            }
         }
+        completion(result.success)
+//        let value = Double.random(in: 0.0...1.0)
+//        if value < 0.8 {
+//            completion(true)
+//            print("\(Date()) SENT \(message)")
+//        } else {
+//            completion(false)
+//            print("\(Date()) FAILED TO SEND \(message)")
+//
+//        }
 
     }
 

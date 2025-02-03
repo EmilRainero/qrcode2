@@ -178,6 +178,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     
     private var shotRadiusPixels: Double = 2.5
     private var inShot: Bool = false
+    private var lastShotFrame: Int32 = 0
     
     init(appStateMachine: AppStateMachine) {
         self.appStateMachine = appStateMachine
@@ -518,8 +519,9 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 let result = rectifyImageForMultipleCodes(image: tempImage!, using: self.corners)
                                 
                 let detect = detectLaser(image: result.image!, frameCount: frameCount)
-                if detect.found {
+                if detect.found && self.frameCount > self.lastShotFrame + 10 {
                     self.inShot = true
+                    
                     let target = Models.processTarget(image: self.lastFrame!)
                     let code = detect.codes[0]
                     
@@ -528,7 +530,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                         self.laserSpots = [code]
                     } else {
                         if !self.laserSpots!.isEmpty &&
-                            self.laserSpots![self.laserSpots!.count-1].frame == frameCount - 1 {
+                            frameCount - self.laserSpots![self.laserSpots!.count-1].frame! == frameCount - 1 {
                             self.laserSpots![self.laserSpots!.count-1].frame = frameCount
                             let shot = self.session!.shots.last!
                             
@@ -569,7 +571,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     }
                 } else {
                     if self.inShot {
-                        messageSender.sendMessage(message: "Add shot")
+                        let lastShot = self.session!.shots[self.session!.shots.count-1]
+                        let add_shot_command = messageSender.server!.generateAddShotCommand(session: self.session!, shot: lastShot)!
+                        messageSender.sendMessage(message: add_shot_command)
+                        print("Add Shot framecount \(frameCount)")
+                        self.lastShotFrame = self.frameCount
                     }
                     self.inShot = false
                     
@@ -679,13 +685,16 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         if appStateMachine.currentState == .startRunningSession && frameCount == delayStartTime {
             appStateMachine.handle(event: .running)
             self.session = Models.Session(starttime: Date())
-            messageSender.sendMessage(message: "Start session")
+            let new_session_command = messageSender.server!.generateStartSessionCommand(session: self.session!)!
+            messageSender.sendMessage(message: new_session_command)
             frameCount = 0
         }
         if appStateMachine.currentState == .runningSession && frameCount == sessionTime {
 //            self.detectedQRCodes = []
             self.session!.finish(finishtime: Date())
-            messageSender.sendMessage(message: "Finish session")
+            let finish_session_command = messageSender.server!.generateFinishSessionCommand(session: self.session!)!
+
+            messageSender.sendMessage(message: finish_session_command)
 
             let dataAccess = DB.DataAccess("db.sqlite3")
             let _ = dataAccess.createSession(session: DB.Session(id: UUID().uuidString, data: self.session!.toJson(), starttime: self.session!.starttime))

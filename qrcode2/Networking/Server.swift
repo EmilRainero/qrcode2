@@ -167,6 +167,8 @@ class Server {
 }
 
 func testPost() {
+    return
+    
     let token = KeychainManager.shared.retrieveToken(forKey: "authToken")
     let server = Server(baseURL: "http://192.168.5.6:5001", token: token)
         
