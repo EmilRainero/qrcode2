@@ -33,12 +33,25 @@ extension DB {
             return nil
         }
         
+        func deleteSession(id: String) -> Bool {
+            do {
+                let db = try Connection(fileName())
+                let query = "DELETE FROM sessions WHERE id = \"\(id)\""
+                let deleteStatement = try db.prepare(query)
+                try deleteStatement.run()
+                return true
+            } catch {
+                print("ERROR deleting session: \(error)")
+                return false
+            }
+        }
+        
         func isTableCreated(_ tableName: String) -> Bool {
             do {
                 let db = try Connection(fileName())
                 let query = "SELECT name FROM sqlite_master WHERE type='table' AND name='\(tableName)';"
 
-                for row in try db.prepare(query) {
+                for _ in try db.prepare(query) {
                     return true
                 }
             } catch {
@@ -46,6 +59,9 @@ extension DB {
             }
             return false
         }
+        
+        // create deleteSession function
+        
         
         func getSession(id: String) -> Session? {
             do {

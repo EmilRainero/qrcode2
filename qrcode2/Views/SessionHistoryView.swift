@@ -32,6 +32,7 @@ class SessionUI: Identifiable {
     var shots: [ShotUI]
     var score: Int32
     var image: UIImage?
+    var session_id: String
     
     init() {
         self.starttime = Date()
@@ -39,10 +40,12 @@ class SessionUI: Identifiable {
         self.shots = []
         self.score = 0
         self.image = nil
+        self.session_id = ""
     }
     
     class func toSessionUI(session: Models.Session) -> SessionUI {
         let result = SessionUI()
+        result.session_id = session.id
         result.starttime = session.starttime
         result.finishtime = session.finishtime
         result.score = session.score
@@ -69,54 +72,77 @@ class SessionUI: Identifiable {
 
 struct SessionHistoryView: View {
     @Binding var navigationPath: NavigationPath
-    var sessions: [SessionUI]
+    @State var sessions: [SessionUI] = []
+    @Environment(\.editMode) var editMode
 
     init(navigationPath: Binding<NavigationPath>) {
         self._navigationPath = navigationPath
+        loadSessions()
+    }
 
-        let dataAccess = DB.DataAccess("db.sqlite3")
-        self.sessions = []
-        let sessions = dataAccess.getAllSessions()
-        for session in sessions {
-            let sessionModel = Models.Session.fromJson(json: session.data)!
+    func loadSessions() {
+        let dataAccess = DB.DataAccess("db.sqlite3") // Make sure DB.DataAccess is available
+        let dbSessions = dataAccess.getAllSessions()
+        sessions = dbSessions.compactMap { dbSession in
+            guard let sessionModel = Models.Session.fromJson(json: dbSession.data) else { return nil }
             let image = sessionModel.createTargetImageWithShots(size: CGSize(width: 600, height: 600))
-            let sessionItem = SessionUI.toSessionUI(session: sessionModel)
-            sessionItem.image = image
-            self.sessions.append(sessionItem)
+            let sessionUI = SessionUI.toSessionUI(session: sessionModel)
+            sessionUI.image = image
+            return sessionUI
         }
     }
 
+    func deleteSessions(at offsets: IndexSet) {
+        let dataAccess = DB.DataAccess("db.sqlite3") // Make sure DB.DataAccess is available
+
+        for index in offsets {
+            let sessionToDelete = sessions[index]
+            let ok = dataAccess.deleteSession(id: sessionToDelete.session_id)
+            if !ok {
+                print("error deleting session")
+            }
+        }
+        sessions.remove(atOffsets: offsets)
+    }
+
     var body: some View {
-        NavigationView { // Keep the NavigationView here
-            VStack(alignment: .leading) { // Use a VStack
+        NavigationView {
+            VStack(alignment: .leading) {
                 if sessions.isEmpty {
                     Text("No sessions.")
                         .font(.largeTitle)
                         .bold()
-                        .padding(.top) // Add some top padding
-                    Spacer() // Push content to top
+                        .padding(.top)
+                    Spacer()
                 } else {
-                    List(sessions) { session in
-                        NavigationLink(destination: SessionDetailView(session: session)) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
-                                    .font(.headline)
+                    List {
+                        ForEach(sessions) { session in
+                            NavigationLink(destination: SessionDetailView(session: session)) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
+                                        .font(.headline)
 
-                                Text("Shots: \(session.shots.count)  Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
+                                    Text("Shots: \(session.shots.count)  Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.vertical, 5)
                             }
-                            .padding(.vertical, 5)
                         }
+                        .onDelete(perform: deleteSessions)
                     }
                 }
-            } // End of VStack
-            
-        } // End of NavigationView
-        .navigationTitle("History") // Set the title here!
+            }
+            .toolbar {
+                EditButton()
+            }
+            .task {
+                loadSessions()
+            }
+        }
+        .navigationTitle("History")
         .navigationBarTitleDisplayMode(.inline)
     }
-    
 }
 
 struct SessionDetailView: View {
@@ -124,35 +150,38 @@ struct SessionDetailView: View {
 
     var body: some View {
         List {
-            // Display session details at the top
-            Section(header: Text("Session Details")) {
+            Section(header: Text("")) {
                 VStack(alignment: .leading, spacing: 16) {
-                    
                     Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
                         .font(.largeTitle)
                         .bold()
-                    Text("Shots: \(session.shots.count)  Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
+                    Text("Shots: \(session.shots.count)  Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
                         .font(.body)
-                    
-                    Text("Finish time: \(formatDateToLocalTime(date: session.finishtime!, format: "yyyy-MM-dd HH:mm a"))")
-                        .font(.body)
-                    
-                    Text("Duration: \(computeDuration(start: session.starttime, finish: session.finishtime!))")
-                        .font(.body)
-                    
-                    if let image = session.image {
-//                        Image(uiImage: image)
-//                            .resizable()
-//                            .aspectRatio(contentMode: .fit)
-                        ZoomableImageView(image: image) // Use a separate zoomable view
 
+                    if let finishTime = session.finishtime { // Handle optional finishtime
+                        Text("Finish time: \(formatDateToLocalTime(date: finishTime, format: "yyyy-MM-dd HH:mm a"))")
+                            .font(.body)
 
+                        Text("Duration: \(computeDuration(start: session.starttime, finish: finishTime))")
+                            .font(.body)
                     }
-                    Spacer()
+
+                    if let image = session.image {
+                        ZoomableImageView(image: image)
+                            .frame(maxWidth: .infinity, maxHeight: 300) // Set max height
+                            .clipped()
+                    } else {
+                        Text("No Image Available") // Placeholder for when image is nil
+                            .frame(maxWidth: .infinity, maxHeight: 300)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8) // Add a rounded border
+                                    .stroke(Color.gray, lineWidth: 1)
+                            )
+                    }
                 }
+                .padding(.vertical, 8) // Add some padding around the details
             }
-            
-            // Display the list of shots
+
             Section(header: Text("Shots")) {
                 if session.shots.isEmpty {
                     Text("No shots recorded for this session.")
@@ -170,8 +199,8 @@ struct SessionDetailView: View {
                 }
             }
         }
-        .listStyle(InsetGroupedListStyle()) // Use a grouped list style for better readability
-        .navigationTitle("Details")
+        .listStyle(InsetGroupedListStyle())
+        .navigationTitle("Session Details")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -181,65 +210,79 @@ struct ZoomableImageView: View {
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
 
     var body: some View {
         GeometryReader { geometry in
             let imageSize = geometry.size
             let maxOffset = computeMaxOffset(imageSize: imageSize, scale: scale)
-            
+
             Image(uiImage: image)
                 .resizable()
-                .aspectRatio(contentMode: .fit)
+                .scaledToFit()
+                .padding()
                 .scaleEffect(scale)
-                .offset(x: offset.width, y: offset.height)
+                .offset(offset)
                 .gesture(
                     MagnificationGesture()
                         .onChanged { value in
-                            let newScale = max(0.25, min(lastScale * value, 5.0)) // Limit zoom-in to 5x
+                            let newScale = max(1.0, min(lastScale * value, 5.0))
                             scale = newScale
                         }
                         .onEnded { _ in
-                            lastScale = scale
+                            withAnimation {
+                                lastScale = scale
+                            }
                         }
                 )
                 .simultaneousGesture(
                     DragGesture()
                         .onChanged { value in
-                            if scale > 1.0 { // Allow panning only if zoomed in
+                            if scale > 1.0 {
+                                let translation = value.translation
                                 let newOffset = CGSize(
-                                    width: offset.width + value.translation.width,
-                                    height: offset.height + value.translation.height
+                                    width: lastOffset.width + translation.width,
+                                    height: lastOffset.height + translation.height
                                 )
                                 offset = clampOffset(newOffset, maxOffset: maxOffset)
                             }
                         }
-                        .onEnded { _ in }
+                        .onEnded { _ in
+                            lastOffset = offset
+                        }
                 )
                 .gesture(
                     TapGesture(count: 2)
                         .onEnded {
                             withAnimation {
-                                scale = 1.0
+                                if scale == 1.0 {
+                                    scale = 2.0
+                                } else {
+                                    scale = 1.0
+                                }
                                 offset = .zero
+                                lastOffset = .zero
                             }
                         }
                 )
                 .frame(width: imageSize.width, height: imageSize.height)
                 .clipped()
-                .animation(.easeInOut(duration: 0.2), value: scale)
-                .animation(.easeInOut(duration: 0.2), value: offset)
+                .overlay(
+//                    RoundedRectangle(cornerRadius: 10) // Adjust corner radius as needed
+                    Rectangle()
+                        .stroke(Color.gray, lineWidth: 2) // Border color and width
+                )
+                .highPriorityGesture(DragGesture())  // Prevents List from scrolling
         }
-        .frame(height: 300) // Adjust based on needs
+        .frame(height: 300)
     }
 
-    /// Calculate maximum offset to keep the image within bounds
     private func computeMaxOffset(imageSize: CGSize, scale: CGFloat) -> CGSize {
         let maxX = ((imageSize.width * scale) - imageSize.width) / 2
         let maxY = ((imageSize.height * scale) - imageSize.height) / 2
         return CGSize(width: maxX, height: maxY)
     }
 
-    /// Clamp offset to prevent excessive panning
     private func clampOffset(_ offset: CGSize, maxOffset: CGSize) -> CGSize {
         return CGSize(
             width: min(max(offset.width, -maxOffset.width), maxOffset.width),
@@ -247,6 +290,8 @@ struct ZoomableImageView: View {
         )
     }
 }
+
+
 
 struct ShotRowView: View {
     let shot: ShotUI
