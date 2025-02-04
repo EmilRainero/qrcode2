@@ -149,38 +149,39 @@ extension DB {
 
 func testDB() {
     let dataAccess = DB.DataAccess("db.sqlite3")
+    dataAccess.dropTables()
     dataAccess.initTables()
 
-    return
-
-//    let dataAccess = DB.DataAccess("db.sqlite3")
-    dataAccess.dropTables()
+//    return
     
-    var currentDate = Date() // Current date and time
-    for i in 1...5 {
+    var currentDate = Date() - Double.random(in: 60.0...600.0)
+    for _ in 1...5 {
         let startdate = currentDate
-        let finishdate = startdate.addingTimeInterval(75)
         
         let msession = Models.Session(starttime: startdate)
-        var shotDate = currentDate.addingTimeInterval(1)
-        for _ in 0...5 {
-            msession.addShot(shot: Models.Shot(time: shotDate, angle: 0.0, distance: 0.5, score: 5))
-            shotDate = shotDate.addingTimeInterval(1)
+        var shotDate = currentDate.addingTimeInterval(1) +  Double.random(in: 0.0...0.3)
+        for _ in 1...Int32.random(in: 1...10) {
+            msession.addShot(shot: Models.Shot(time: shotDate,
+                                               angle: Double.random(in: 0.0...360.0),
+                                               distance: Double.random(in: 0.0...1.5),
+                                               score: Int32.random(in: 0...10)))
+            shotDate = shotDate.addingTimeInterval(1) +  Double.random(in: 0.0...0.3)
         }
+        let finishdate = shotDate +  Double.random(in: 0.5...5.0)
+
         msession.finish(finishtime: finishdate)
-        let rowId = dataAccess.createSession(session: DB.Session(id: "\(i)", data: msession.toJson(), starttime: startdate))
+        let _ = dataAccess.createSession(session: DB.Session(id: msession.id, data: msession.toJson(), starttime: startdate))
 //        print("New session created with ID: \(rowId!)")
         
-        currentDate = currentDate.addingTimeInterval(60)
+        currentDate = currentDate.addingTimeInterval(60) +  Double.random(in: 0.5...50.0)
     }
     
-    currentDate = currentDate.addingTimeInterval(-24 * 3600)
-    let finishdate = currentDate.addingTimeInterval(75)
-
-    var msession = Models.Session(starttime: currentDate)
-    msession.addShot(shot: Models.Shot(time: finishdate, angle: 0.0, distance: 0.5, score: 5))
-    msession.finish(finishtime: finishdate)
-    var rowId = dataAccess.createSession(session: DB.Session(id: "6", data: msession.toJson(), starttime: currentDate))
+//    currentDate = currentDate.addingTimeInterval(-24 * 3600)
+//    let finishdate = currentDate.addingTimeInterval(75)
+//    var msession = Models.Session(starttime: currentDate)
+//    msession.addShot(shot: Models.Shot(time: finishdate, angle: 0.0, distance: 0.5, score: 5))
+//    msession.finish(finishtime: finishdate)
+//    var rowId = dataAccess.createSession(session: DB.Session(id: "6", data: msession.toJson(), starttime: currentDate))
     
 //    print("New session created with ID: \(rowId!)")
 //    rowId = dataAccess.createSession(session: DB.Session(id: "1", data: data, starttime: Date()))

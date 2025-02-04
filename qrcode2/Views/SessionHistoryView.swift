@@ -158,6 +158,12 @@ struct SessionDetailView: View {
                     Text("No shots recorded for this session.")
                         .font(.body)
                 } else {
+                    HStack {
+                        Text("Shot").bold().frame(width: 40, alignment: .leading)
+                        Text("Score").bold().frame(width: 80, alignment: .center)
+                        Text("Time").bold().frame(width: 100, alignment: .leading)
+                        Text("Drift").bold()
+                    }
                     ForEach(session.shots) { shot in
                         ShotRowView(shot: shot, sessionStart: session.starttime.timeIntervalSince1970)
                     }
@@ -251,14 +257,23 @@ struct ShotRowView: View {
             let timeDiff = shot.time.timeIntervalSince1970 - sessionStart
             let message = calculateMessage(shot: shot) // Call a function for clarity
 
-            Text(String(format: "%d  Score: %d  Time: +%.1fs  %@", shot.number, shot.score, timeDiff, message))
-//            Text(message)
+            HStack {
+                Text("\(shot.number)")
+                    .frame(width: 40, alignment: .leading)
+                Text("\(shot.score)")
+                    .frame(width: 80, alignment: .center)
+                Text(String(format: "+%.1fs", timeDiff))
+                    .frame(width: 100, alignment: .leading)
+                Text(message)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .listRowInsets(EdgeInsets(top: 2, leading: 10, bottom: 2, trailing: 2))
         }
     }
 
     // Separate function to calculate the message
     private func calculateMessage(shot: ShotUI) -> String {
-        guard shot.allShots.count > 1 else { return "" } // Guard against < 2 shots
+        guard shot.allShots.count > 1 else { return "-" } // Guard against < 2 shots
 
         // Safely access the first and last elements
         guard let firstShot = shot.allShots.first, let lastShot = shot.allShots.last else {

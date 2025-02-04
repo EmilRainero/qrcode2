@@ -338,6 +338,8 @@ class MessageSender {
 
 // Example usage:
 func testMessageSender(messageSender: MessageSender) {
+    return
+    
     for i in 1...10 {
         let message = "Hello, world! \(i)"
         DispatchQueue.global().asyncAfter(deadline: .now() + Double(i)) { // Delay each message
