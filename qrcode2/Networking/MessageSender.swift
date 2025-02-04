@@ -8,6 +8,11 @@
 import Foundation
 import SQLite
 
+// Define notification name
+extension Notification.Name {
+    static let newMessageReceived = Notification.Name("newMessageReceived")
+}
+
 class MessageSender {
 
     private let messageQueue: DispatchQueue
@@ -17,6 +22,7 @@ class MessageSender {
     private let dbQueue: DispatchQueue
     private let authToken: String?
     public let server: Server?
+    private let fake_send: Bool = true
 
     init(dbPath: String, url: String) {
         let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -79,11 +85,6 @@ class MessageSender {
                 let formatter = ISO8601DateFormatter()
                 let stmt = try db.prepare("INSERT INTO messages (message, timestamp, sent) VALUES (?, ?, ?)")
                 try stmt.run(message, formatter.string(from: Date()), 0)
-//                let rowid =  db.lastInsertRowid
-                
-//                print("Message inserted successfully with ID: \(rowid), Message: \(message)")
-//                self.printTableContents()
-
             } catch {
                 print("Error inserting message: \(error)")
             }
@@ -103,9 +104,49 @@ class MessageSender {
     private var message = SQLite.Expression<String>(value: "message")
     private var timestamp = SQLite.Expression<Date>("timestamp")
     private var sent = SQLite.Expression<Int64>("sent")
+    private var retryDelay: Double = 2.0
+    private var checkMessages: Double = 0.5
 
     private var isProcessing = false // Flag to track processing state
 
+//    private func processQueue() {
+//        guard !isProcessing else { return } // Already processing, do nothing
+//
+//        isProcessing = true // Set flag to true
+//
+//        messageQueue.async { [weak self] in
+//            guard let self = self else { return }
+//
+//            let messageData = self.getNextMessage()
+//
+//            if let (id, message) = messageData {
+//                self.sendRESTRequest(message: message) { [weak self] success in
+//                    guard let self = self else { return }
+//
+//                    if success {
+//                        self.markMessageAsSent(id: id)
+//                        self.deleteMessage(id: id)
+//                        self.isProcessing = false // Reset flag *after* successful processing
+//                        self.processQueue() // Process the next message immediately
+//                    } else {
+//                        DispatchQueue.main.asyncAfter(deadline: .now() + self.retryDelay) { [weak self] in
+//                            guard let self = self else { return }
+//                            self.isProcessing = false // Reset flag *before* retrying
+//                            self.processQueue() // Retry after delay
+//                        }
+//                    }
+//                }
+//            } else {
+//                // No messages to process currently. Check again later.
+//                DispatchQueue.main.asyncAfter(deadline: .now() + self.checkMessages) { [weak self] in
+//                    guard let self = self else { return }
+//                    self.isProcessing = false // Reset flag *before* checking again
+//                    self.processQueue()
+//                }
+//            }
+//        }
+//    }
+    
     private func processQueue() {
         guard !isProcessing else { return } // Already processing, do nothing
 
@@ -117,7 +158,6 @@ class MessageSender {
             let messageData = self.getNextMessage()
 
             if let (id, message) = messageData {
-//                print("\(Date()) \(message)")
                 self.sendRESTRequest(message: message) { [weak self] success in
                     guard let self = self else { return }
 
@@ -127,10 +167,7 @@ class MessageSender {
                         self.isProcessing = false // Reset flag *after* successful processing
                         self.processQueue() // Process the next message immediately
                     } else {
-                        let retryDelay = 1  // Int.random(in: 5...10)
-//                        print("\tRETRYING in \(retryDelay) seconds...")
-
-                        DispatchQueue.main.asyncAfter(deadline: .now() + Double(retryDelay)) { [weak self] in
+                        DispatchQueue.main.asyncAfter(deadline: .now() + self.retryDelay) { [weak self] in
                             guard let self = self else { return }
                             self.isProcessing = false // Reset flag *before* retrying
                             self.processQueue() // Retry after delay
@@ -138,15 +175,29 @@ class MessageSender {
                     }
                 }
             } else {
-                // No messages to process currently. Check again later.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
-                    guard let self = self else { return }
-                    self.isProcessing = false // Reset flag *before* checking again
-                    self.processQueue()
-                }
+                // No messages to process currently. Wait for a new message or check later
+                isProcessing = false // Reset flag to allow new triggers
             }
         }
     }
+
+    // Call this when adding new messages to the queue
+    func addMessage(_ message: String) {
+        sendMessage(message: message) // Assume this stores message persistently
+        NotificationCenter.default.post(name: .newMessageReceived, object: nil) // Notify
+    }
+
+    // Start listening for new messages
+    private func setupMessageListener() {
+        NotificationCenter.default.addObserver(self, selector: #selector(handleNewMessage), name: .newMessageReceived, object: nil)
+    }
+
+    // Handle notification and restart queue processing
+    @objc private func handleNewMessage() {
+        processQueue()
+    }
+
+    
     
     private func getMessagesToProcess() -> [(id: Int, message: String)] {
         var messages: [(id: Int, message: String)] = []
@@ -180,8 +231,12 @@ class MessageSender {
     }
 
     private func sendRESTRequest(message: String, completion: @escaping (Bool) -> Void) {
-      
-        print("SEND URL: \(self.url)  command: \(message)")
+        print("\(Date())  SEND URL: \(self.url)  command: \(message)")
+        if self.fake_send {
+            completion(true)
+            return
+        }
+        
         let result = self.server!.sendUpdates(body: message)
         if result.success {
             print("\(Date()) SENT \(message)")
@@ -283,10 +338,12 @@ class MessageSender {
 
 // Example usage:
 func testMessageSender(messageSender: MessageSender) {
-    for i in 1...100 {
-        messageSender.sendMessage(message: "Hello, world! \(i)")
+    for i in 1...10 {
+        let message = "Hello, world! \(i)"
+        DispatchQueue.global().asyncAfter(deadline: .now() + Double(i)) { // Delay each message
+            print("\(Date())  TRY TO SEND \(message)")
+            messageSender.sendMessage(message: message)
+        }
+        
     }
-//    messageSender.sendMessage(message: "Hello, world!")
-//    messageSender.sendMessage(message: "Another message!")
-//    messageSender.sendMessage(message: "Third message!")
 }
