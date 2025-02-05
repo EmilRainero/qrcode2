@@ -108,7 +108,21 @@ extension Models {
                 cgContext.setLineJoin(.miter)
                 cgContext.setLineCap(.square)
                 
-                let maxRadius = size.width / 2.0 / 2.0
+                var maxPosition: Double = 1.1
+
+                for (_, shot) in self.shots.enumerated() {
+                    let position = shot.position
+                    let angle = position.angle
+                    let distance = position.distance
+                    
+                    let point = polarToCartesian(angle: angle, distance: distance)
+                    maxPosition = max(maxPosition, abs(point.x))
+                    maxPosition = max(maxPosition, abs(point.y))
+                }
+                print("maxPosition \(maxPosition)")
+//                let maxRadius = size.width / 2.0 / 2.0
+                let maxRadius = size.width / 2.0 / (maxPosition * 1.05)
+                
                 let center = CGPoint(x: CGFloat(size.width/2), y: CGFloat(size.height/2))
                 
                 cgContext.setFillColor(strokeColor.cgColor)

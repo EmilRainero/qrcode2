@@ -31,21 +31,22 @@ class SessionUI: Identifiable {
     var finishtime: Date? = nil
     var shots: [ShotUI]
     var score: Int32
-    var image: UIImage?
     var session_id: String
+    var session: Models.Session?
     
     init() {
         self.starttime = Date()
         self.finishtime = nil
         self.shots = []
         self.score = 0
-        self.image = nil
         self.session_id = ""
+        self.session = nil
     }
     
     class func toSessionUI(session: Models.Session) -> SessionUI {
         let result = SessionUI()
         result.session_id = session.id
+        result.session = session
         result.starttime = session.starttime
         result.finishtime = session.finishtime
         result.score = session.score
@@ -85,9 +86,7 @@ struct SessionHistoryView: View {
         let dbSessions = dataAccess.getAllSessions()
         sessions = dbSessions.compactMap { dbSession in
             guard let sessionModel = Models.Session.fromJson(json: dbSession.data) else { return nil }
-            let image = sessionModel.createTargetImageWithShots(size: CGSize(width: 600, height: 600))
             let sessionUI = SessionUI.toSessionUI(session: sessionModel)
-            sessionUI.image = image
             return sessionUI
         }
     }
@@ -166,8 +165,9 @@ struct SessionDetailView: View {
                             .font(.body)
                     }
 
-                    if let image = session.image {
-                        ZoomableImageView(image: image)
+                    let newImage = session.session!.createTargetImageWithShots(size: CGSize(width: 600, height: 600))
+                    if newImage != nil {
+                        ZoomableImageView(image: newImage!)
                             .frame(maxWidth: .infinity, maxHeight: 300) // Set max height
                             .clipped()
                     } else {
