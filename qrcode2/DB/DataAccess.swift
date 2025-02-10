@@ -164,6 +164,8 @@ extension DB {
 
 
 func testDB() {
+    return
+    
     let dataAccess = DB.DataAccess("db.sqlite3")
     dataAccess.dropTables()
     dataAccess.initTables()

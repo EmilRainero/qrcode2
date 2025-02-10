@@ -43,20 +43,23 @@ class MessageSender {
             do {
                 self.db = try Connection(self.dbPath)
 
-                let messages = Table("messages")
-
-                let command = messages.create { t in
-                    t.column(id, primaryKey: .autoincrement)
-                    t.column(message)
-                    t.column(timestamp)
-                    t.column(sent)
-                }
-                do {
-                    try db!.run(command)
-                } catch let error as SQLite.Result {
-//                    print("Table 'messages' already exists. \(error)")
-                } catch {
-                    fatalError("Error creating table: \(error)")
+                if !self.isTableCreated("messages") {
+                    
+                    let messages = Table("messages")
+                    
+                    let command = messages.create { t in
+                        t.column(id, primaryKey: .autoincrement)
+                        t.column(message)
+                        t.column(timestamp)
+                        t.column(sent)
+                    }
+                    do {
+                        try db!.run(command)
+                    } catch let error as SQLite.Result {
+                        //                    print("Table 'messages' already exists. \(error)")
+                    } catch {
+                        fatalError("Error creating table: \(error)")
+                    }
                 }
                 self.deleteAllMessages()
             } catch {
@@ -65,6 +68,20 @@ class MessageSender {
         }
     }
 
+    func isTableCreated(_ tableName: String) -> Bool {
+        do {
+            let db = try Connection(self.dbPath)
+            let query = "SELECT name FROM sqlite_master WHERE type='table' AND name='\(tableName)';"
+
+            for _ in try db.prepare(query) {
+                return true
+            }
+        } catch {
+            print("ERROR: \(error)")
+        }
+        return false
+    }
+    
     deinit {
         dbQueue.sync {
             self.db = nil

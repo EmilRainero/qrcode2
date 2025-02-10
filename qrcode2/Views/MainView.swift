@@ -14,6 +14,9 @@ struct MainView: View {
     
     @State private var navigationPath = NavigationPath()  // Define a navigation path
     @State public var appStateMachine = AppStateMachine(initialState: .initial)
+    @AppStorage("isRightHanded") private var isRightHanded = true
+    @AppStorage("firearmType") private var firearmType: String = "Handgun"
+    @AppStorage("ammunitionSize") private var ammunitionSize: String = ".22 LR"
 
     let messageSender = MessageSender(dbPath: "messages.db", url: "http://192.168.5.6:5001/updates") 
 
@@ -23,13 +26,15 @@ struct MainView: View {
                 Text("Home Laser Range")
                     .font(.largeTitle)
                     .padding(.vertical)
-                
+                Text("Handedness: \(isRightHanded ? "Right" : "Left")")
+                Text("Firearm Type: \(firearmType)")
+                Text("Ammunition Size: \(ammunitionSize)")
                 Spacer().frame(height: 40)
                 
                 Button(action: {
-                        navigationPath.append("calibrate")
+                        navigationPath.append("settings")
                 }) {
-                    Text("Calibrate")
+                    Text("Settings")
                         .frame(width: 200)
                         .padding(.vertical, 10) // Adds vertical padding around the text
                         .padding(.horizontal, 20) // Adds horizontal padding for a wider button
@@ -85,8 +90,8 @@ struct MainView: View {
             .padding()
             
             .navigationDestination(for: String.self) { value in
-                if value == "calibrate" {
-                    IContentView()
+                if value == "settings" {
+                    SettingsView()
                 }
                 if value == "start" {
                     CameraView(navigationPath: $navigationPath, appStateMachine: $appStateMachine)
