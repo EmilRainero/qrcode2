@@ -14,9 +14,6 @@ struct MainView: View {
     
     @State private var navigationPath = NavigationPath()  // Define a navigation path
     @State public var appStateMachine = AppStateMachine(initialState: .initial)
-    @AppStorage("isRightHanded") private var isRightHanded = true
-    @AppStorage("firearmType") private var firearmType: String = "Handgun"
-    @AppStorage("ammunitionSize") private var ammunitionSize: String = ".22 LR"
 
     let messageSender = MessageSender(dbPath: "messages.db", url: "http://192.168.5.6:5001/updates") 
 
@@ -26,9 +23,7 @@ struct MainView: View {
                 Text("Home Laser Range")
                     .font(.largeTitle)
                     .padding(.vertical)
-                Text("Handedness: \(isRightHanded ? "Right" : "Left")")
-                Text("Firearm Type: \(firearmType)")
-                Text("Ammunition Size: \(ammunitionSize)")
+                
                 Spacer().frame(height: 40)
                 
                 Button(action: {
@@ -45,6 +40,20 @@ struct MainView: View {
                 
                 Spacer().frame(height: 20)
 
+                Button(action: {
+                        navigationPath.append("firearms")
+                }) {
+                    Text("Firearms")
+                        .frame(width: 200)
+                        .padding(.vertical, 10) // Adds vertical padding around the text
+                        .padding(.horizontal, 20) // Adds horizontal padding for a wider button
+                        .background(Color.blue) // Background color for the button
+                        .foregroundColor(.white) // Text color for the button
+                        .cornerRadius(25)
+                }
+                
+                Spacer().frame(height: 20)
+                
                 Button(action: {
                         navigationPath.append("start")
                 }) {
@@ -97,9 +106,13 @@ struct MainView: View {
                     CameraView(navigationPath: $navigationPath, appStateMachine: $appStateMachine)
                 }
                 if value == "reports" {
-//                    ReportsView(navigationPath: $navigationPath)
                     SessionHistoryView(navigationPath: $navigationPath)
                 }
+                if value == "firearms" {
+                    FirearmListView(navigationPath: $navigationPath)
+                }
+               
+
             }
         }
         .onAppear {
@@ -113,36 +126,3 @@ struct MainView: View {
     }
     
 }
-//
-//func displayNumber(on view: UIView, number: Int) {
-//    // Create the label
-//    let label = UILabel()
-//    label.text = "\(number)"
-//    label.font = UIFont.systemFont(ofSize: 100, weight: .bold) // Large font
-//    label.textColor = .black
-//    label.textAlignment = .center
-//    label.backgroundColor = UIColor.white.withAlphaComponent(0.8)
-//    label.layer.cornerRadius = 10
-//    label.layer.masksToBounds = true
-//
-//    // Set the size and position of the label
-//    label.translatesAutoresizingMaskIntoConstraints = false
-//    view.addSubview(label)
-//    NSLayoutConstraint.activate([
-//        label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-//        label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-//        label.widthAnchor.constraint(equalToConstant: 200),
-//        label.heightAnchor.constraint(equalToConstant: 150)
-//    ])
-//
-//    // Animate the label to fade out after 1 second
-//    UIView.animate(withDuration: 0.5, delay: 1, options: [], animations: {
-//        label.alpha = 0
-//    }) { _ in
-//        // Remove the label after the animation
-//        label.removeFromSuperview()
-//    }
-//}
-
-
-

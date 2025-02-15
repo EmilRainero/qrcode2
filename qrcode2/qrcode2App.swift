@@ -13,8 +13,7 @@ struct qrcode2App: App {
 
     var body: some Scene {
         WindowGroup {
-//            LoginView()
-            FirearmListView()
+            LoginView()
         }
     }
     
