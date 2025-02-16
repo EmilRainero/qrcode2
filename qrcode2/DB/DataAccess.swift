@@ -20,6 +20,52 @@ extension DB {
             self.databaseFilename = databaseFilename
         }
             
+        func fileName() -> String {
+            // Use FileManager to get the Documents directory path
+            let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let dbPath = documentDirectory.appendingPathComponent(databaseFilename!).path
+            return dbPath
+        }
+        
+        func initTables() {
+            do {
+                let db = try Connection(fileName())
+                try initSessionsTable(db: db)
+                try initFirearmsTable(db: db)
+            } catch {
+                print("ERROR: \(error)")
+            }
+        }
+        
+        func dropTables() {
+            do {
+                let db = try Connection(fileName())
+                
+                let sessions = Table("sessions")
+                try db.run(sessions.drop(ifExists: true))
+                
+                let firearms = Table("firearms")
+                try db.run(firearms.drop(ifExists: true))
+            } catch {
+                print("ERROR: \(error)")
+            }
+        }
+        
+        func isTableCreated(_ tableName: String) -> Bool {
+            do {
+                let db = try Connection(fileName())
+                let query = "SELECT name FROM sqlite_master WHERE type='table' AND name='\(tableName)';"
+
+                for _ in try db.prepare(query) {
+                    return true
+                }
+            } catch {
+                print("ERROR: \(error)")
+            }
+            return false
+        }
+        
+        //SESSION
         func createSession(session: Session) -> Int64? {
             do {
                 let db = try Connection(fileName())
@@ -45,23 +91,6 @@ extension DB {
                 return false
             }
         }
-        
-        func isTableCreated(_ tableName: String) -> Bool {
-            do {
-                let db = try Connection(fileName())
-                let query = "SELECT name FROM sqlite_master WHERE type='table' AND name='\(tableName)';"
-
-                for _ in try db.prepare(query) {
-                    return true
-                }
-            } catch {
-                print("ERROR: \(error)")
-            }
-            return false
-        }
-        
-        // create deleteSession function
-        
         
         func getSession(id: String) -> Session? {
             do {
@@ -117,32 +146,6 @@ extension DB {
             return sessions
         }
         
-        func fileName() -> String {
-            // Use FileManager to get the Documents directory path
-            let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-            let dbPath = documentDirectory.appendingPathComponent(databaseFilename!).path
-            return dbPath
-        }
-        
-        func initTables() {
-            do {
-                let db = try Connection(fileName())
-                try initSessionsTable(db: db)
-            } catch {
-                print("ERROR: \(error)")
-            }
-        }
-        
-        func dropTables() {
-            do {
-                let db = try Connection(fileName())
-                let sessions = Table("sessions")
-                try db.run(sessions.drop(ifExists: true))
-            } catch {
-                print("ERROR: \(error)")
-            }
-        }
-        
         private func initSessionsTable(db: Connection) throws {
             
             if self.isTableCreated("sessions") {
@@ -158,19 +161,108 @@ extension DB {
             try db.run(command)
             
         }
+        
+        public func initFirearmsTable(db: Connection) throws {
+            if self.isTableCreated("firerms") {
+                return
+            }
+            let firearms = Table("firearms")
+
+            let firearms_id = SQLite.Expression<String>(value: "id")
+            let firearms_title = SQLite.Expression<String>(value: "title")
+            let firearms_type = SQLite.Expression<String>(value: "type")
+            let firearms_caliber = SQLite.Expression<String>(value: "caliber")
+
+            let command = firearms.create { t in
+                t.column(firearms_id, primaryKey: true)
+                t.column(firearms_title)
+                t.column(firearms_type)
+                t.column(firearms_caliber)
+            }
+            try db.run(command)
+        }
+        
+        func getAllFirearms() -> [Firearm] {
+            var firearms = [Firearm]()
+            
+            do {
+                let db = try Connection(fileName())
+                
+                for row in try db.prepare("SELECT id, title, type, caliber FROM firearms") {
+                    let firearm = Firearm(
+                        id: UUID(uuidString: row[0] as! String)!,
+                        title:  row[1] as! String,
+                        type: row[2] as! String,
+                        caliber: row[3] as! String
+                    )
+                    firearms.append(firearm)
+                }
+            } catch {
+                print("ERROR: \(error)")
+            }
+            
+            return firearms
+        }
+        
+        func insertFirearm(firearm: Firearm) -> Int64? {
+            do {
+                let db = try Connection(fileName())
+                let stmt = try db.prepare("INSERT INTO firearms (id, title, type, caliber) VALUES (?, ?, ?, ?)")
+                try stmt.run(firearm.id.uuidString, firearm.title, firearm.type, firearm.caliber)
+                return db.lastInsertRowid
+            } catch {
+                print("ERROR: \(error)")
+            }
+            return nil
+        }
+        
+        func updateFirearm(firearm: Firearm) -> Bool {
+            do {
+                let db = try Connection(fileName())
+                let stmt = try db.prepare("UPDATE firearms SET title = ?, type = ?, caliber = ? WHERE id = ?")
+                try stmt.run(firearm.title, firearm.type, firearm.caliber, firearm.id.uuidString)
+                return true
+            } catch {
+                print("ERROR: \(error)")
+                return false
+            }
+        }
+        
+        func deleteFirearm(id: String) -> Bool {
+            do {
+                let db = try Connection(fileName())
+                let query = "DELETE FROM firearms WHERE id = \"\(id)\""
+                let deleteStatement = try db.prepare(query)
+                try deleteStatement.run()
+                return true
+            } catch {
+                print("ERROR deleting firearm: \(error)")
+                return false
+            }
+        }
     }
 
 }
 
 
 func testDB() {
+    
     return
+    
     
     let dataAccess = DB.DataAccess("db.sqlite3")
     dataAccess.dropTables()
     dataAccess.initTables()
+//    let _ = dataAccess.insertFirearm(firearm: DB.Firearm(title: "the title", type: "Handgun", caliber: "9mm"))
+    let _ = dataAccess.insertFirearm(firearm: DB.Firearm(title: "Emil", type: "Shotgun", caliber: "12 Gauge"))
+    let _ = dataAccess.insertFirearm(firearm: DB.Firearm(title: "Susan", type: "Shotgun", caliber: "20 Gauge"))
+    let firearms = dataAccess.getAllFirearms()
+    for firearm in firearms {
+        print(firearm)
+    }
+    print()
 
-//    return
+    return
     
     var currentDate = Date() - Double.random(in: 60.0...600.0)
     for _ in 1...5 {

@@ -118,8 +118,8 @@ struct MainView: View {
         .onAppear {
             deleteAllTemporaryFiles()
             testDB()
-            testPost()
-            testMessageSender(messageSender: messageSender)
+//            testPost()
+//            testMessageSender(messageSender: messageSender)
             // Navigate to CameraView immediately when the view appears - DEBUGGING
 //            navigationPath.append("start")
         }

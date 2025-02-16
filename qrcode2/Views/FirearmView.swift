@@ -7,27 +7,12 @@
 // Firearm.swift
 import SwiftUI
 
-struct Firearm: Identifiable, Codable {
-    let id: UUID  // Now allows a custom ID
-    let title: String
-    let type: String
-    let caliber: String
-
-    // Custom initializer to provide an ID when needed
-    init(id: UUID = UUID(), title: String, type: String, caliber: String) {
-        self.id = id
-        self.title = title
-        self.type = type
-        self.caliber = caliber
-    }
-}
-
 struct FirearmListView: View {
     @Binding var navigationPath: NavigationPath
 
-    @State private var firearms: [Firearm] = []
+    @State private var firearms: [Models.Firearm] = []
     @State private var isAddingFirearm: Bool = false
-    @State private var selectedFirearm: Firearm?
+    @State private var selectedFirearm: Models.Firearm?
     @State private var defaultFirearmID: UUID? // Store default firearm ID
 
     init(navigationPath: Binding<NavigationPath>) {
@@ -87,26 +72,53 @@ struct FirearmListView: View {
     }
 
     func initializeFirearms() {
-        firearms = [
-            Firearm(title: "Glock 19", type: "Handgun", caliber: "9mm"),
-            Firearm(title: "Colt M4", type: "Rifle", caliber: ".223 Remmington"),
-            Firearm(title: "Remington 870", type: "Shotgun", caliber: "12 Gauge")
-        ]
+        let dataAccess = DB.DataAccess("db.sqlite3")
+        let firearms = dataAccess.getAllFirearms()
+        self.firearms = []
+        for firearm in firearms {
+//            print(firearm)
+            self.firearms.append(Models.Firearm(
+                id: firearm.id,
+                title: firearm.title,
+                type: firearm.type,
+                caliber: firearm.caliber
+            ))
+        }
+
         sortFirearms()
     }
 
     func deleteFirearm(at offsets: IndexSet) {
+        let firearm = firearms[offsets.first!]
+        let dataAccess = DB.DataAccess("db.sqlite3")
+        dataAccess.deleteFirearm(id: firearm.id.uuidString)
+        
         firearms.remove(atOffsets: offsets)
         saveDefaultFirearm() // Update default if removed
     }
 
-    func addFirearm(_ newFirearm: Firearm) {
+    func addFirearm(_ newFirearm: Models.Firearm) {
+        let dataAccess = DB.DataAccess("db.sqlite3")
+        dataAccess.insertFirearm(firearm: DB.Firearm(
+            id: newFirearm.id,
+            title: newFirearm.title,
+            type: newFirearm.type,
+            caliber: newFirearm.caliber
+        ))
         firearms.append(newFirearm)
         sortFirearms()
     }
 
-    func editFirearm(_ updatedFirearm: Firearm) {
+    func editFirearm(_ updatedFirearm: Models.Firearm) {
         if let index = firearms.firstIndex(where: { $0.id == updatedFirearm.id }) {
+            let dataAccess = DB.DataAccess("db.sqlite3")
+            dataAccess.updateFirearm(firearm: DB.Firearm(
+                id: updatedFirearm.id,
+                title: updatedFirearm.title,
+                type: updatedFirearm.type,
+                caliber: updatedFirearm.caliber
+            ))
+            
             firearms[index] = updatedFirearm
             sortFirearms()
         }
@@ -117,7 +129,7 @@ struct FirearmListView: View {
     }
 
     // MARK: - Default Firearm Functions
-    func setDefaultFirearm(_ firearm: Firearm) {
+    func setDefaultFirearm(_ firearm: Models.Firearm) {
         defaultFirearmID = firearm.id
         saveDefaultFirearm()
     }
@@ -135,9 +147,9 @@ struct FirearmListView: View {
 }
 
 struct AddEditFirearmView: View {
-    var existingFirearm: Firearm? = nil
+    var existingFirearm: Models.Firearm? = nil
     @Binding var isPresented: Bool
-    var onSave: (Firearm) -> Void
+    var onSave: (Models.Firearm) -> Void
 
     @State private var firearmTitle: String = ""
     @State private var selectedFirearmType: String = "Handgun"
@@ -183,7 +195,7 @@ struct AddEditFirearmView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(existingFirearm == nil ? "Add" : "Save") {
-                        let newFirearm = Firearm(
+                        let newFirearm = Models.Firearm(
                             id: existingFirearm?.id ?? UUID(),
                             title: firearmTitle,
                             type: selectedFirearmType,
