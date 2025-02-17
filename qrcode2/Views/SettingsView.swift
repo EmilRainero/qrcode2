@@ -10,7 +10,6 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("isRightHanded") private var isRightHanded = true
     
-    
     var body: some View {
         Form {
             Section(header: Text("Handedness")) {

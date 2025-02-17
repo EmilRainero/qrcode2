@@ -8,14 +8,13 @@
 import SwiftUI
 import Foundation
 
-
 struct MainView: View {
     let onLogout: () -> Void
     
-    @State private var navigationPath = NavigationPath()  // Define a navigation path
-    @State public var appStateMachine = AppStateMachine(initialState: .initial)
-
-    let messageSender = MessageSender(dbPath: "messages.db", url: "http://192.168.5.6:5001/updates") 
+    @State private var navigationPath = NavigationPath()
+    @State private var isPopupSelectionVisible = false
+    @State private var selectedOption: String? = nil
+    @State private var appStateMachine = AppStateMachine(initialState: .initial)
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -27,56 +26,56 @@ struct MainView: View {
                 Spacer().frame(height: 40)
                 
                 Button(action: {
-                        navigationPath.append("settings")
+                    navigationPath.append("settings")
                 }) {
                     Text("Settings")
                         .frame(width: 200)
-                        .padding(.vertical, 10) // Adds vertical padding around the text
-                        .padding(.horizontal, 20) // Adds horizontal padding for a wider button
-                        .background(Color.blue) // Background color for the button
-                        .foregroundColor(.white) // Text color for the button
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 20)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
                         .cornerRadius(25)
                 }
                 
                 Spacer().frame(height: 20)
 
                 Button(action: {
-                        navigationPath.append("firearms")
+                    navigationPath.append("firearms")
                 }) {
                     Text("Firearms")
                         .frame(width: 200)
-                        .padding(.vertical, 10) // Adds vertical padding around the text
-                        .padding(.horizontal, 20) // Adds horizontal padding for a wider button
-                        .background(Color.blue) // Background color for the button
-                        .foregroundColor(.white) // Text color for the button
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 20)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
                         .cornerRadius(25)
                 }
                 
                 Spacer().frame(height: 20)
                 
                 Button(action: {
-                        navigationPath.append("start")
+                    isPopupSelectionVisible = true
                 }) {
-                    Text("Session")
+                    Text("Start Session")
                         .frame(width: 200)
-                        .padding(.vertical, 10) // Adds vertical padding around the text
-                        .padding(.horizontal, 20) // Adds horizontal padding for a wider button
-                        .background(Color.blue) // Background color for the button
-                        .foregroundColor(.white) // Text color for the button
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 20)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
                         .cornerRadius(25)
                 }
                 
                 Spacer().frame(height: 20)
 
                 Button(action: {
-                        navigationPath.append("reports")
+                    navigationPath.append("history")
                 }) {
                     Text("History")
                         .frame(width: 200)
-                        .padding(.vertical, 10) // Adds vertical padding around the text
-                        .padding(.horizontal, 20) // Adds horizontal padding for a wider button
-                        .background(Color.blue) // Background color for the button
-                        .foregroundColor(.white) // Text color for the button
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 20)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
                         .cornerRadius(25)
                 }
                 
@@ -87,42 +86,44 @@ struct MainView: View {
                 }) {
                     Text("Logout")
                         .frame(width: 200)
-                        .padding(.vertical, 10) // Adds vertical padding around the text
-                        .padding(.horizontal, 20) // Adds horizontal padding for a wider button
-                        .background(Color.red) // Background color for the button
-                        .foregroundColor(.white) // Text color for the button
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 20)
+                        .background(Color.red)
+                        .foregroundColor(.white)
                         .cornerRadius(25)
                 }
                 
                 Spacer()
             }
             .padding()
-            
             .navigationDestination(for: String.self) { value in
-                if value == "settings" {
+                switch value {
+                case "settings":
                     SettingsView()
-                }
-                if value == "start" {
+                case "start":
                     CameraView(navigationPath: $navigationPath, appStateMachine: $appStateMachine)
-                }
-                if value == "reports" {
+                case "history":
                     SessionHistoryView(navigationPath: $navigationPath)
-                }
-                if value == "firearms" {
+                case "firearms":
                     FirearmListView(navigationPath: $navigationPath)
+                default:
+                    EmptyView()
                 }
-               
-
             }
         }
-        .onAppear {
-            deleteAllTemporaryFiles()
-            testDB()
-//            testPost()
-//            testMessageSender(messageSender: messageSender)
-            // Navigate to CameraView immediately when the view appears - DEBUGGING
-//            navigationPath.append("start")
+        .sheet(isPresented: $isPopupSelectionVisible) {
+            PopupSelectionView(
+                selectedOption: $selectedOption,
+                isPresented: $isPopupSelectionVisible
+            )
+        }
+        .onChange(of: selectedOption) { newSelection in
+            if let selected = newSelection {
+                print("Main User selected: \(selected)")
+                isPopupSelectionVisible = false // Dismiss the sheet *before* navigating
+                navigationPath.append("start") // Navigate only ONCE
+                selectedOption = nil // Reset selectedOption to prevent multiple triggers
+            }
         }
     }
-    
 }

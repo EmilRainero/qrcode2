@@ -20,6 +20,7 @@ enum AppState {
 
 // Step 2: Define the events/triggers
 enum AppEvent {
+    case initial
     case startCalibration
     case endCalibration
     case calibrationFailed
@@ -42,6 +43,10 @@ class AppStateMachine {
     // Transition logic
     func handle(event: AppEvent) {
         print("Handle event \(event)")
+        if event == .initial {
+            currentState = .initial
+            return
+        }
 
         switch (currentState, event) {
         case (.initial, .startCalibration):

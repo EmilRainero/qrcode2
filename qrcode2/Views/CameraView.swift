@@ -246,6 +246,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     func stopCapture() {
         captureSession?.stopRunning()
         captureSession = nil
+        appStateMachine.handle(event: .initial)
     }
     
     func detectLaserOriginal(image: UIImage, frameCount: Int32) -> (found: Bool, codes: [Models.DetectedQRCode]) {
