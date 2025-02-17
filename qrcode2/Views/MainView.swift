@@ -27,9 +27,9 @@ struct MainView: View {
                 Spacer().frame(height: 40)
                 
                 Button(action: {
-                    navigationPath.append("settings")
+                    isPopupSelectFirearmVisible = true
                 }) {
-                    Text("Settings")
+                    Text("Start Session")
                         .frame(width: 200)
                         .padding(.vertical, 10)
                         .padding(.horizontal, 20)
@@ -53,20 +53,6 @@ struct MainView: View {
                 }
                 
                 Spacer().frame(height: 20)
-                
-                Button(action: {
-                    isPopupSelectFirearmVisible = true
-                }) {
-                    Text("Start Session")
-                        .frame(width: 200)
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 20)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(25)
-                }
-                
-                Spacer().frame(height: 20)
 
                 Button(action: {
                     navigationPath.append("history")
@@ -80,8 +66,23 @@ struct MainView: View {
                         .cornerRadius(25)
                 }
                 
-                Spacer().frame(height: 20)
+                Spacer()
 
+                
+                Button(action: {
+                    navigationPath.append("settings")
+                }) {
+                    Text("Settings")
+                        .frame(width: 200)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 20)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(25)
+                }
+                
+                Spacer().frame(height: 20)
+                
                 Button(action: {
                     onLogout()
                 }) {

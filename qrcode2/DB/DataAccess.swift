@@ -285,7 +285,7 @@ func testDB() {
 //    dataAccess.deleteTable(table: "sessions")
 //    dataAccess.createSessionsTable()
     var currentDate = Date() - Double.random(in: 60.0...600.0)
-    let firearm = Models.Firearm(title: "Glock", type: "Handgun", caliber: "9mm")
+    let firearm = Models.Firearm(title: "Glock 17", type: "Handgun", caliber: "9mm")
     for _ in 1...5 {
         let startdate = currentDate
         
@@ -293,17 +293,17 @@ func testDB() {
         msession.addFirearm(firearm: firearm)
         var shotDate = currentDate.addingTimeInterval(1) +  Double.random(in: 0.0...0.3)
         for _ in 1...Int32.random(in: 1...10) {
-            msession.addShot(shot: Models.Shot(time: shotDate,
-                                               angle: Double.random(in: 0.0...360.0),
-                                               distance: Double.random(in: 0.0...1.5),
-                                               score: Int32.random(in: 0...10)))
+            let shot = Models.Shot(time: shotDate,
+                                   angle: Double.random(in: 0.0...360.0),
+                                   distance: Double.random(in: 0.0...1.5),
+                                   score: Int32.random(in: 0...10))
+            msession.addShot(shot: shot)
             shotDate = shotDate.addingTimeInterval(1) +  Double.random(in: 0.0...0.3)
         }
         let finishdate = shotDate +  Double.random(in: 0.5...5.0)
 
         msession.finish(finishtime: finishdate)
         let _ = dataAccess.createSession(session: DB.Session(id: msession.id, data: msession.toJson(), starttime: startdate))
-//        print("New session created with ID: \(rowId!)")
         
         currentDate = currentDate.addingTimeInterval(60) +  Double.random(in: 0.5...50.0)
     }

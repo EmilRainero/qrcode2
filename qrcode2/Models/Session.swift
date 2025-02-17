@@ -125,7 +125,7 @@ extension Models {
                     maxPosition = max(maxPosition, abs(point.x))
                     maxPosition = max(maxPosition, abs(point.y))
                 }
-                print("maxPosition \(maxPosition)")
+//                print("maxPosition \(maxPosition)")
 //                let maxRadius = size.width / 2.0 / 2.0
                 let maxRadius = size.width / 2.0 / (maxPosition * 1.05)
                 

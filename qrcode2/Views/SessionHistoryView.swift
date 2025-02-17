@@ -84,6 +84,7 @@ class SessionUI: Identifiable {
 struct SessionHistoryView: View {
     @Binding var navigationPath: NavigationPath
     @State var sessions: [SessionUI] = []
+    @State private var expandedSections: [String: Bool] = [:] // Track expanded/collapsed state
     @Environment(\.editMode) var editMode
 
     init(navigationPath: Binding<NavigationPath>) {
@@ -92,7 +93,7 @@ struct SessionHistoryView: View {
     }
 
     func loadSessions() {
-        let dataAccess = DB.DataAccess("db.sqlite3") // Make sure DB.DataAccess is available
+        let dataAccess = DB.DataAccess("db.sqlite3") // Ensure DB access
         let dbSessions = dataAccess.getAllSessions()
         sessions = dbSessions.compactMap { dbSession in
             guard let sessionModel = Models.Session.fromJson(json: dbSession.data) else { return nil }
@@ -102,16 +103,20 @@ struct SessionHistoryView: View {
     }
 
     func deleteSessions(at offsets: IndexSet) {
-        let dataAccess = DB.DataAccess("db.sqlite3") // Make sure DB.DataAccess is available
+        let dataAccess = DB.DataAccess("db.sqlite3")
 
         for index in offsets {
             let sessionToDelete = sessions[index]
             let ok = dataAccess.deleteSession(id: sessionToDelete.session_id)
             if !ok {
-                print("error deleting session")
+                print("Error deleting session")
             }
         }
         sessions.remove(atOffsets: offsets)
+    }
+
+    private var groupedSessions: [String: [SessionUI]] {
+        Dictionary(grouping: sessions, by: { $0.firearmTitle })
     }
 
     var body: some View {
@@ -125,25 +130,39 @@ struct SessionHistoryView: View {
                     Spacer()
                 } else {
                     List {
-                        ForEach(sessions) { session in
-                            NavigationLink(destination: SessionDetailView(session: session)) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
+                        ForEach(groupedSessions.keys.sorted(by: { $0.localizedCompare($1) == .orderedAscending }), id: \.self) { firearmTitle in
+                            Section {
+                                DisclosureGroup(
+                                    isExpanded: Binding(
+                                        get: { expandedSections[firearmTitle] ?? false },
+                                        set: { expandedSections[firearmTitle] = $0 }
+                                    )
+                                ) {
+                                    ForEach(groupedSessions[firearmTitle] ?? []) { session in
+                                        NavigationLink(destination: SessionDetailView(session: session)) {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
+                                                    .font(.headline)
+
+                                                Text("\(session.firearmType) \(session.firearmCaliber)")
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.gray)
+
+                                                Text("Shots: \(session.shots.count)  Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.gray)
+                                            }
+                                            .padding(.vertical, 5)
+                                        }
+                                    }
+                                    .onDelete(perform: deleteSessions)
+                                } label: {
+                                    Text(firearmTitle)
                                         .font(.headline)
-                                    
-                                    Text("\(session.firearmTitle) \(session.firearmType)  \(session.firearmCaliber) ")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    
-                                    Text("Shots: \(session.shots.count)  Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    
+                                        .foregroundColor(.primary)
                                 }
-                                .padding(.vertical, 5)
                             }
                         }
-                        .onDelete(perform: deleteSessions)
                     }
                 }
             }
