@@ -119,7 +119,7 @@ struct MainView: View {
         }
         .onChange(of: selectedOption) { newSelection in
             if let selected = newSelection {
-                print("Main User selected: \(selected)")
+                print("Firearm selected: \(selected)")
                 isPopupSelectionVisible = false // Dismiss the sheet *before* navigating
                 navigationPath.append("start") // Navigate only ONCE
                 selectedOption = nil // Reset selectedOption to prevent multiple triggers

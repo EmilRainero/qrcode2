@@ -188,7 +188,7 @@ extension DB {
             do {
                 let db = try Connection(fileName())
                 
-                for row in try db.prepare("SELECT id, title, type, caliber FROM firearms") {
+                for row in try db.prepare("SELECT id, title, type, caliber FROM firearms ORDER BY title ASC") {
                     let firearm = Firearm(
                         id: UUID(uuidString: row[0] as! String)!,
                         title:  row[1] as! String,
