@@ -8,14 +8,18 @@
 
 import SwiftUI
 
-struct PopupSelectionView: View {
-    @Binding var selectedOption: String?
+struct ChooseFirearmView: View {
+    @Binding var selectedFirearmTitle: String?
+    @Binding var selectedFirearm: Models.Firearm?
+
     @Binding var isPresented: Bool
 
-    @State private var options: [String] = []
-    @State private var tempSelection: String? // Local selection state
+    @State private var firearmOptions: [String] = []
+    @State private var internalSelectedFirearmTitle: String? // Local selection state
     @State private var defaultFirearmID: UUID? // Store default firearm ID
 
+    @State private var firearms: [DB.Firearm] = []
+    
     func loadDefaultFirearm() {
         if let idString = UserDefaults.standard.string(forKey: "defaultFirearmID"),
            let id = UUID(uuidString: idString) {
@@ -26,7 +30,7 @@ struct PopupSelectionView: View {
     func loadData() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             let dataAccess = DB.DataAccess("db.sqlite3")
-            let firearms = dataAccess.getAllFirearms()
+            self.firearms = dataAccess.getAllFirearms()
             
             loadDefaultFirearm() // Load the default firearm ID
 
@@ -42,9 +46,9 @@ struct PopupSelectionView: View {
                 }
             }
 
-            self.options = options // Update state variable
+            self.firearmOptions = options // Update state variable
             if let defaultOption = defaultOption {
-                self.tempSelection = defaultOption // Set the default selection if found
+                self.internalSelectedFirearmTitle = defaultOption // Set the default selection if found
             }
         }
     }
@@ -55,9 +59,9 @@ struct PopupSelectionView: View {
                 .font(.headline)
                 .padding()
 
-            if !options.isEmpty {
-                Picker("Select an option", selection: $tempSelection) {
-                    ForEach(options, id: \.self) { option in
+            if !firearmOptions.isEmpty {
+                Picker("Select an option", selection: $internalSelectedFirearmTitle) {
+                    ForEach(firearmOptions, id: \.self) { option in
                         Text(option).tag(option)
                     }
                 }
@@ -80,8 +84,18 @@ struct PopupSelectionView: View {
                 .cornerRadius(10)
 
                 Button("Start Session") {
-                    if let tempSelection = tempSelection {
-                        selectedOption = tempSelection // Save selected option
+                    if let tempSelection = internalSelectedFirearmTitle {
+                        selectedFirearmTitle = tempSelection // Save selected option
+                        for firearm in firearms {
+                            if firearm.title == tempSelection {
+                                selectedFirearm = Models.Firearm(
+                                    id: firearm.id,
+                                    title: firearm.title,
+                                    type: firearm.type,
+                                    caliber: firearm.caliber
+                                )
+                            }
+                        }
                         isPresented = false // Close modal
                     }
                 }
@@ -90,7 +104,7 @@ struct PopupSelectionView: View {
                 .background(Color.blue)
                 .foregroundColor(.white)
                 .cornerRadius(10)
-                .disabled(tempSelection == nil || options.isEmpty) // Disable if nothing is selected
+                .disabled(internalSelectedFirearmTitle == nil || firearmOptions.isEmpty) // Disable if nothing is selected
             }
             .padding()
         }

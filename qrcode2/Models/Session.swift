@@ -15,12 +15,18 @@ extension Models {
         var finishtime: Date? = nil
         var shots: [Shot]
         var score: Int32
+        var firearm: Firearm?
         
         init(starttime: Date) {
             self.id = UUID().uuidString
             self.starttime = starttime
             self.shots = []
             self.score = 0
+            self.firearm = nil
+        }
+        
+        func addFirearm(firearm: Firearm) {
+            self.firearm = firearm
         }
         
         func addShot(shot: Shot) {

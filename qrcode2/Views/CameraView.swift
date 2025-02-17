@@ -17,16 +17,18 @@ import opencv2
 struct CameraView: View {
     @Binding var navigationPath: NavigationPath
     @Binding var appStateMachine: AppStateMachine
+    @Binding var firearm: Models.Firearm?
 
     @StateObject private var cameraManager: CameraManager
     @State private var temporaryNumber: Int? = nil // Holds the number to display temporarily
 
-    init(navigationPath: Binding<NavigationPath>, appStateMachine: Binding<AppStateMachine>) {
+    init(navigationPath: Binding<NavigationPath>, appStateMachine: Binding<AppStateMachine>, firearm: Binding<Models.Firearm?>) {
         self._navigationPath = navigationPath
         self._appStateMachine = appStateMachine
+        self._firearm = firearm
 
         // Initialize CameraManager with the unwrapped appStateMachine
-        self._cameraManager = StateObject(wrappedValue: CameraManager(appStateMachine: appStateMachine.wrappedValue))
+        self._cameraManager = StateObject(wrappedValue: CameraManager(appStateMachine: appStateMachine.wrappedValue, firearm: firearm.wrappedValue!))
     }
     
     var body: some View {
@@ -149,11 +151,13 @@ struct CameraView: View {
 }
 
 class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+    @Published var appStateMachine: AppStateMachine
+    @Published var firearm: Models.Firearm
+    
     @Published var processedImage: UIImage?
     @Published var originalImageSize: CGSize = .zero
     @Published var imageSize: CGSize = .zero
     @Published var scaleFactor: CGFloat = 0.0
-    @Published var appStateMachine: AppStateMachine
     @Published var frameRate: Int32 = 30
     @Published var calibrationTime: Int32 = 15 * 30
     @Published var delayStartTime: Int32 = 5 * 30
@@ -180,8 +184,9 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     private var inShot: Bool = false
     private var lastShotFrame: Int32 = 0
     
-    init(appStateMachine: AppStateMachine) {
+    init(appStateMachine: AppStateMachine, firearm: Models.Firearm) {
         self.appStateMachine = appStateMachine
+        self.firearm = firearm
     }
     
     func testDetectLaser() {
@@ -210,6 +215,13 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
     
     func startCapture() {
+        
+//        print("startCapture Firearm \(firearm)")
+//        self.session = Models.Session(starttime: Date())
+//        self.session!.addFirearm(firearm: self.firearm)  // assign firearm to session
+//        print(self.session!.toJson())
+//        self.session = nil
+        
 //        testDetectLaser()
 //        return
         
@@ -686,6 +698,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         if appStateMachine.currentState == .startRunningSession && frameCount == delayStartTime {
             appStateMachine.handle(event: .running)
             self.session = Models.Session(starttime: Date())
+            self.session!.addFirearm(firearm: self.firearm)  // assign firearm to session
+            
             let new_session_command = messageSender.server!.generateStartSessionCommand(session: self.session!)!
             messageSender.sendMessage(message: new_session_command)
             frameCount = 0

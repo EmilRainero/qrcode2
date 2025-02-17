@@ -12,8 +12,9 @@ struct MainView: View {
     let onLogout: () -> Void
     
     @State private var navigationPath = NavigationPath()
-    @State private var isPopupSelectionVisible = false
-    @State private var selectedOption: String? = nil
+    @State private var isPopupSelectFirearmVisible = false
+    @State private var selectedFirearmTitle: String? = nil
+    @State private var selectedFirearm: Models.Firearm? = nil
     @State private var appStateMachine = AppStateMachine(initialState: .initial)
 
     var body: some View {
@@ -54,7 +55,7 @@ struct MainView: View {
                 Spacer().frame(height: 20)
                 
                 Button(action: {
-                    isPopupSelectionVisible = true
+                    isPopupSelectFirearmVisible = true
                 }) {
                     Text("Start Session")
                         .frame(width: 200)
@@ -101,7 +102,7 @@ struct MainView: View {
                 case "settings":
                     SettingsView()
                 case "start":
-                    CameraView(navigationPath: $navigationPath, appStateMachine: $appStateMachine)
+                    CameraView(navigationPath: $navigationPath, appStateMachine: $appStateMachine, firearm: $selectedFirearm)
                 case "history":
                     SessionHistoryView(navigationPath: $navigationPath)
                 case "firearms":
@@ -111,18 +112,18 @@ struct MainView: View {
                 }
             }
         }
-        .sheet(isPresented: $isPopupSelectionVisible) {
-            PopupSelectionView(
-                selectedOption: $selectedOption,
-                isPresented: $isPopupSelectionVisible
+        .sheet(isPresented: $isPopupSelectFirearmVisible) {
+            ChooseFirearmView(
+                selectedFirearmTitle: $selectedFirearmTitle,
+                selectedFirearm: $selectedFirearm,
+                isPresented: $isPopupSelectFirearmVisible
             )
         }
-        .onChange(of: selectedOption) { newSelection in
+        .onChange(of: selectedFirearmTitle) { newSelection in
             if let selected = newSelection {
-                print("Firearm selected: \(selected)")
-                isPopupSelectionVisible = false // Dismiss the sheet *before* navigating
+                isPopupSelectFirearmVisible = false // Dismiss the sheet *before* navigating
                 navigationPath.append("start") // Navigate only ONCE
-                selectedOption = nil // Reset selectedOption to prevent multiple triggers
+                selectedFirearmTitle = nil // Reset selectedOption to prevent multiple triggers
             }
         }
     }
