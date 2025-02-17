@@ -33,7 +33,10 @@ class SessionUI: Identifiable {
     var score: Int32
     var session_id: String
     var session: Models.Session?
-    
+    var firearmTitle: String
+    var firearmType: String
+    var firearmCaliber: String
+
     init() {
         self.starttime = Date()
         self.finishtime = nil
@@ -41,6 +44,9 @@ class SessionUI: Identifiable {
         self.score = 0
         self.session_id = ""
         self.session = nil
+        self.firearmTitle = ""
+        self.firearmType = ""
+        self.firearmCaliber = ""
     }
     
     class func toSessionUI(session: Models.Session) -> SessionUI {
@@ -50,6 +56,10 @@ class SessionUI: Identifiable {
         result.starttime = session.starttime
         result.finishtime = session.finishtime
         result.score = session.score
+        result.firearmTitle = session.firearm!.title
+        result.firearmType = session.firearm!.type
+        result.firearmCaliber = session.firearm!.caliber
+        
         result.shots = []
         for (index, shot) in session.shots.enumerated() {
             let shotUI = ShotUI()
@@ -120,10 +130,15 @@ struct SessionHistoryView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(formatDateToLocalTime(date: session.starttime, format: "yyyy-MM-dd HH:mm a"))
                                         .font(.headline)
-
+                                    
+                                    Text("\(session.firearmTitle) \(session.firearmType)  \(session.firearmCaliber) ")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                    
                                     Text("Shots: \(session.shots.count)  Score: \(session.score)  Average: \(String(format: "%.1f", session.shotAverage()))")
                                         .font(.subheadline)
                                         .foregroundColor(.gray)
+                                    
                                 }
                                 .padding(.vertical, 5)
                             }

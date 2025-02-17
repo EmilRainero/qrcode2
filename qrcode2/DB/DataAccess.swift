@@ -37,6 +37,26 @@ extension DB {
             }
         }
         
+        func createSessionsTable() {
+            do {
+                let db = try Connection(fileName())
+                try initSessionsTable(db: db)
+            } catch {
+                print("ERROR: \(error)")
+            }
+        }
+        
+        func deleteTable(table: String) {
+            do {
+                let db = try Connection(fileName())
+                
+                let sessions = Table(table)
+                try db.run(sessions.drop(ifExists: true))
+                
+            } catch {
+                print("ERROR: \(error)")
+            }
+        }
         func dropTables() {
             do {
                 let db = try Connection(fileName())
@@ -247,28 +267,30 @@ extension DB {
 
 func testDB() {
     
-    return
-    
+//    return
     
     let dataAccess = DB.DataAccess("db.sqlite3")
-    dataAccess.dropTables()
-    dataAccess.initTables()
-//    let _ = dataAccess.insertFirearm(firearm: DB.Firearm(title: "the title", type: "Handgun", caliber: "9mm"))
-    let _ = dataAccess.insertFirearm(firearm: DB.Firearm(title: "Emil", type: "Shotgun", caliber: "12 Gauge"))
-    let _ = dataAccess.insertFirearm(firearm: DB.Firearm(title: "Susan", type: "Shotgun", caliber: "20 Gauge"))
-    let firearms = dataAccess.getAllFirearms()
-    for firearm in firearms {
-        print(firearm)
-    }
-    print()
-
-    return
+//    dataAccess.dropTables()
+//    dataAccess.initTables()
+//    let _ = dataAccess.insertFirearm(firearm: DB.Firearm(title: "Emil", type: "Shotgun", caliber: "12 Gauge"))
+//    let _ = dataAccess.insertFirearm(firearm: DB.Firearm(title: "Susan", type: "Shotgun", caliber: "20 Gauge"))
+//    let firearms = dataAccess.getAllFirearms()
+//    for firearm in firearms {
+//        print(firearm)
+//    }
+//    print()
+//
+//    return
     
+//    dataAccess.deleteTable(table: "sessions")
+//    dataAccess.createSessionsTable()
     var currentDate = Date() - Double.random(in: 60.0...600.0)
+    let firearm = Models.Firearm(title: "Glock", type: "Handgun", caliber: "9mm")
     for _ in 1...5 {
         let startdate = currentDate
         
         let msession = Models.Session(starttime: startdate)
+        msession.addFirearm(firearm: firearm)
         var shotDate = currentDate.addingTimeInterval(1) +  Double.random(in: 0.0...0.3)
         for _ in 1...Int32.random(in: 1...10) {
             msession.addShot(shot: Models.Shot(time: shotDate,

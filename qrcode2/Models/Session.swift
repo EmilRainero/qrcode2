@@ -159,7 +159,7 @@ extension Models {
                     
 //                    print("createTargetImageWithShots  \(index + 1)  \(shot.score), \(angle), \(distance)  \(point)")
 
-                    let shotRadius = 15.0
+                    let shotRadius = self.firearm?.diameter_mm ?? 15.0
                     let circleRect = CGRect(x: point.x - shotRadius, y: point.y - shotRadius, width: shotRadius * 2, height: shotRadius * 2)
                     
                     // Draw shot circle

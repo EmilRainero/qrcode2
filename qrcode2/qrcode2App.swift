@@ -19,5 +19,6 @@ struct qrcode2App: App {
     
     init() {
         LoggerManager.setup()
+        testDB()
     }
 }
